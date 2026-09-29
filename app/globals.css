@@ -1,0 +1,188 @@
+@import "tailwindcss";
+
+@theme {
+  --color-obsidian-950: #050706;
+  --color-obsidian-900: #0a0d0e;
+  --color-charcoal-800: #12171a;
+  --color-charcoal-700: #1a2125;
+
+  --color-reel-green: #2bff88;
+  --color-projector-green: #0fa968;
+  --color-signal-teal: #0f6b5a;
+  --color-nitrate-violet: #6a3dff;
+  --color-tungsten-amber: #ffc857;
+  --color-ember: #ff7a2f;
+  --color-scorch: #ff4a3d;
+
+  --color-ink-50: #f4f7f5;
+  --color-ink-300: #b9c4be;
+  --color-ink-500: #8e9a94;
+  --color-on-green: #03140a;
+
+  --font-sans: var(--font-bricolage), Arial, Helvetica, sans-serif;
+  --font-review: var(--font-newsreader), Georgia, "Times New Roman", serif;
+}
+
+:root {
+  color-scheme: dark;
+  --glass-fill: rgb(255 255 255 / 6%);
+  --glass-fill-hover: rgb(255 255 255 / 9%);
+  --glass-border: rgb(255 255 255 / 12%);
+  --glass-highlight: rgb(255 255 255 / 22%);
+  --glass-shadow: 0 24px 60px -24px rgb(0 0 0 / 65%);
+  --focus-ring: #7cffb5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--color-obsidian-950);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(ellipse at 14% 18%, rgb(15 107 90 / 17%), transparent 38%),
+    radial-gradient(ellipse at 88% 82%, rgb(106 61 255 / 9%), transparent 34%),
+    var(--color-obsidian-950);
+  color: var(--color-ink-50);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-reel-green);
+  color: var(--color-on-green);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.landing-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+}
+
+.landing-panel {
+  width: min(100%, 680px);
+  padding: clamp(28px, 7vw, 64px);
+}
+
+.landing-kicker {
+  margin: 0 0 14px;
+  color: var(--color-reel-green);
+  font-size: 0.875rem;
+}
+
+.landing-panel h1 {
+  margin: 0;
+  font-size: clamp(2.5rem, 8vw, 4.5rem);
+  font-weight: 700;
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+}
+
+.landing-copy {
+  margin: 18px 0 0;
+  color: var(--color-ink-50);
+  font-family: var(--font-review);
+  font-size: clamp(1.35rem, 4vw, 1.8rem);
+  font-style: italic;
+}
+
+.landing-note {
+  max-width: 42ch;
+  margin: 20px 0 28px;
+  color: var(--color-ink-300);
+  line-height: 1.65;
+}
+
+.glass-panel,
+.glass-chip,
+.glass-lens {
+  border: 1px solid var(--glass-border);
+  background: linear-gradient(135deg, rgb(255 255 255 / 9%), rgb(255 255 255 / 3%));
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 24px 60px -24px rgb(0 0 0 / 65%);
+}
+
+.glass-panel {
+  border-radius: 28px;
+}
+
+.glass-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background-color: var(--glass-fill);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 16%),
+    0 8px 24px -16px rgb(0 0 0 / 75%);
+}
+
+.glass-lens {
+  border-radius: 30px 20px 30px 20px;
+  background:
+    radial-gradient(ellipse at 15% 0%, rgb(43 255 136 / 12%), transparent 54%),
+    linear-gradient(145deg, rgb(255 255 255 / 10%), rgb(255 255 255 / 3%));
+  -webkit-backdrop-filter: blur(14px) saturate(145%);
+  backdrop-filter: blur(14px) saturate(145%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 24%),
+    0 28px 70px -32px rgb(0 0 0 / 78%);
+}
+
+.status-chip {
+  color: var(--color-ink-50);
+  font-size: 0.875rem;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-panel,
+  .glass-chip,
+  .glass-lens {
+    background: rgb(18 23 26 / 96%);
+  }
+}
+
+@media (max-width: 639px) {
+  .glass-panel,
+  .glass-chip,
+  .glass-lens {
+    -webkit-backdrop-filter: blur(8px) saturate(125%);
+    backdrop-filter: blur(8px) saturate(125%);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-panel,
+  .glass-chip,
+  .glass-lens {
+    border-color: rgb(255 255 255 / 24%);
+    background: rgb(18 23 26 / 98%);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .glass-panel,
+  .glass-chip,
+  .glass-lens {
+    border-color: rgb(255 255 255 / 40%);
+    background-color: rgb(18 23 26 / 96%);
+  }
+}
