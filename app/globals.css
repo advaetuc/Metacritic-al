@@ -25,6 +25,7 @@
 
 :root {
   color-scheme: dark;
+  --heat: 0;
   --glass-fill: rgb(255 255 255 / 6%);
   --glass-fill-hover: rgb(255 255 255 / 9%);
   --glass-border: rgb(255 255 255 / 12%);
@@ -52,6 +53,119 @@ body {
   color: var(--color-ink-50);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+.app-content {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+}
+
+.ambient-backdrop {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  contain: paint;
+  pointer-events: none;
+  user-select: none;
+}
+
+.ambient-blob {
+  position: absolute;
+  width: 75vmax;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  will-change: transform;
+}
+
+.ambient-blob--green {
+  top: -34vmax;
+  left: -22vmax;
+  transform: translate3d(-3%, -2%, 0) scale(1);
+  background: radial-gradient(
+    circle,
+    rgb(43 255 136 / 20%) 0%,
+    rgb(43 255 136 / 9%) 38%,
+    rgb(43 255 136 / 0%) 72%
+  );
+  animation: drift-green 58s ease-in-out infinite alternate;
+}
+
+.ambient-blob--teal {
+  right: -35vmax;
+  bottom: -40vmax;
+  transform: translate3d(2%, 1%, 0) scale(1.04);
+  background: radial-gradient(
+    circle,
+    rgb(15 107 90 / 35%) 0%,
+    rgb(15 107 90 / 16%) 40%,
+    rgb(15 107 90 / 0%) 72%
+  );
+  animation: drift-teal 67s ease-in-out infinite alternate;
+}
+
+.ambient-blob--violet {
+  top: 12%;
+  left: 30%;
+  transform: translate3d(0, 2%, 0) scale(0.94);
+  background: radial-gradient(
+    circle,
+    rgb(106 61 255 / 10%) 0%,
+    rgb(106 61 255 / 5%) 42%,
+    rgb(106 61 255 / 0%) 72%
+  );
+  animation: drift-violet 71s ease-in-out infinite alternate;
+}
+
+.ambient-blob--ember {
+  top: 15%;
+  right: -34vmax;
+  transform: translate3d(0, 0, 0) scale(0.88);
+  background: radial-gradient(
+    circle,
+    rgb(255 122 47 / 38%) 0%,
+    rgb(255 122 47 / 16%) 38%,
+    rgb(255 122 47 / 0%) 72%
+  );
+  opacity: var(--heat, 0);
+  transition: opacity 600ms ease;
+}
+
+.ambient-grain {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+  opacity: 0.05;
+}
+
+.ambient-backdrop[data-paused="true"] .ambient-blob {
+  animation-play-state: paused;
+}
+
+@keyframes drift-green {
+  from { transform: translate3d(-3%, -2%, 0) scale(1); }
+  to { transform: translate3d(8%, 7%, 0) scale(1.08); }
+}
+
+@keyframes drift-teal {
+  from { transform: translate3d(2%, 1%, 0) scale(1.04); }
+  to { transform: translate3d(-7%, -9%, 0) scale(0.94); }
+}
+
+@keyframes drift-violet {
+  from { transform: translate3d(0, 2%, 0) scale(0.94); }
+  to { transform: translate3d(-9%, -5%, 0) scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-blob {
+    animation: none !important;
+  }
+
+  .ambient-blob--ember {
+    transition: none;
+  }
 }
 
 ::selection {

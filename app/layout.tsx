@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { bricolage, newsreader } from "@/app/fonts";
+import { AmbientBackdrop } from "@/components/backdrop/ambient-backdrop";
+import { MotionProvider } from "@/components/providers/motion-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -18,7 +20,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${bricolage.variable} ${newsreader.variable}`}>
-      <body>{children}</body>
+      <body>
+        <MotionProvider>
+          <AmbientBackdrop />
+          <div className="app-content">{children}</div>
+        </MotionProvider>
+      </body>
     </html>
   );
 }
