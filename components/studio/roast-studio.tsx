@@ -1,10 +1,16 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
+import { generateReview } from "@/lib/engine";
+import type { ReviewModel } from "@/lib/engine/types";
+import { loadCuratedMoviePack, loadVibePack } from "@/lib/data/load-review-packs";
 import { useStudioStore } from "@/lib/state/studio-store";
 import type { GenreId, Sentiment } from "@/lib/engine/types";
 import { BASE_VIBES, VibeSlider } from "./vibe-slider";
 import { HeroSearch } from "./hero-search";
 import { HeatDial } from "./heat-dial";
+import { ScreeningSequence } from "./screening-sequence";
+import { GlassReviewCard } from "./glass-review-card";
 
 const GENRES: ReadonlyArray<{ value: GenreId; label: string }> = [
   { value: "action", label: "Action" },
@@ -27,6 +33,7 @@ const SENTIMENTS: ReadonlyArray<{ value: Sentiment; label: string; icon: string 
 ];
 
 export function RoastStudio() {
+  const title = useStudioStore((state) => state.draft.title);
   const vibe = useStudioStore((state) => state.draft.vibe);
   const heat = useStudioStore((state) => state.draft.heat);
   const genre = useStudioStore((state) => state.draft.genre);
@@ -35,11 +42,55 @@ export function RoastStudio() {
   const setHeat = useStudioStore((state) => state.setHeat);
   const setGenre = useStudioStore((state) => state.setGenre);
   const setSentiment = useStudioStore((state) => state.setSentiment);
+  const phase = useStudioStore((state) => state.phase);
+  const setPhase = useStudioStore((state) => state.setPhase);
+  const [review, setReview] = useState<ReviewModel | null>(null);
+  const [screeningComplete, setScreeningComplete] = useState(false);
+  const [reroll, setReroll] = useState(0);
+  const [error, setError] = useState("");
   const selectedVibe = BASE_VIBES.find((item) => item.id === vibe)?.label ?? "Film student";
+
+  const finishScreening = useCallback(() => setScreeningComplete(true), []);
+
+  useEffect(() => {
+    if (phase === "screening" && screeningComplete && review) setPhase("revealed");
+  }, [phase, screeningComplete, review, setPhase]);
+
+  async function roast() {
+    if (!title.trim() || phase === "screening") return;
+    const draft = useStudioStore.getState().draft;
+    const currentReroll = reroll;
+    setReroll((value) => value + 1);
+    setReview(null);
+    setScreeningComplete(false);
+    setError("");
+    setPhase("screening");
+
+    try {
+      const [vibePack, moviePack] = await Promise.all([
+        loadVibePack(draft.vibe),
+        loadCuratedMoviePack(draft.title).catch(() => undefined),
+      ]);
+      const generated = generateReview({
+        title: draft.title,
+        vibe: draft.vibe,
+        heat: draft.heat,
+        sentiment: draft.sentiment,
+        k: currentReroll,
+        ...(draft.genre ? { genre: draft.genre } : {}),
+        ...(moviePack ? { moviePack } : {}),
+      }, vibePack);
+      setReview(generated);
+    } catch {
+      setError("Review content could not load. Try again.");
+      setPhase("idle");
+    }
+  }
 
   return (
     <main className="landing-shell">
-      <section className="glass-panel landing-panel studio-panel" aria-labelledby="welcome-title">
+      <div className={"studio-layout" + (phase === "revealed" ? " studio-layout--revealed" : "")}>
+      <section className={"glass-panel landing-panel studio-panel" + (phase === "screening" ? " is-screening" : "")} aria-labelledby="welcome-title" aria-busy={phase === "screening"}>
         <header className="studio-header">
           <p className="landing-kicker">The cinema after dark</p>
           <span className="glass-chip status-chip"><span className="status-dot" /> Zero backend. Infinite opinions.</span>
@@ -81,13 +132,18 @@ export function RoastStudio() {
           <VibeSlider value={vibe} onChange={setVibe} />
           <HeatDial value={heat} onChange={setHeat} />
 
-          <button className="studio-submit" type="button" disabled>
-            <span>Roast it</span><span aria-hidden="true">↗</span>
+          <button className="studio-submit" type="button" disabled={!title.trim() || phase === "screening"} onClick={roast}>
+            <span>{review ? "Roast again" : "Roast it"}</span><span aria-hidden="true">↗</span>
           </button>
-          <p className="studio-submit-note">The projector is warming up. More soon.</p>
+          <p className="studio-submit-note" aria-live="polite">
+            {error || (phase === "screening" ? "The projector is rolling." : "A deterministic roast, made just for this title.")}
+          </p>
         </div>
         <p className="studio-caption">Currently speaking as <strong>{selectedVibe}</strong> at <strong>{heat}/3 heat</strong>.</p>
       </section>
+      {phase === "revealed" && review ? <GlassReviewCard model={review} /> : null}
+      </div>
+      {phase === "screening" ? <ScreeningSequence onComplete={finishScreening} /> : null}
     </main>
   );
 }
