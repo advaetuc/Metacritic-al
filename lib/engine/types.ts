@@ -75,6 +75,24 @@ export interface MoviePack {
   }>;
 }
 
+/** Compact entry shipped in the client-side movie search index. */
+export interface MovieIndexEntry {
+  id: string;
+  t: string;
+  y: number;
+  a?: string[];
+  g: GenreId[];
+  p: number;
+}
+
+/** Maps stable logical IDs to immutable content-hashed static asset paths. */
+export interface ContentManifest {
+  version: 1;
+  index: string;
+  movies: Record<string, string>;
+  vibes: Record<string, string>;
+}
+
 export interface RatingDistribution {
   mean: number;
   standardDeviation: number;

@@ -72,6 +72,7 @@ export function generateReview(input: GenerateReviewInput, vibe: VibePack): Revi
 }
 
 export * from "./features";
+export * from "./matcher";
 export * from "./normalize";
 export * from "./prng";
 export * from "./rating";

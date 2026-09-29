@@ -4,6 +4,8 @@ import type { TitleFeatures } from "./types";
 export function extractTitleFeatures(value: string): TitleFeatures {
   const title = displayTitle(value);
   const tokens = title.match(/[\p{L}\p{N}]+/gu) ?? [];
+  const titleShort = displayTitle(title.split(/:\s*/u, 1)[0] ?? title);
+
   return {
     colon: title.includes(":") || title.includes(" - "),
     sequel: /(?:\b\d+\s*$|\bpart\s+(?:\d+|[ivxlcdm]+)\b|\b(?:returns|reloaded)\s*$)/iu.test(title),
@@ -14,6 +16,6 @@ export function extractTitleFeatures(value: string): TitleFeatures {
     possessive: /(?:'s|’s)\b/iu.test(title),
     startsThe: /^the\b/iu.test(title),
     hasYear: /\b(?:19|20)\d{2}\b/u.test(title),
-    titleShort: displayTitle(title.split(/:\s*/u, 1)[0] ?? title),
+    titleShort,
   };
 }
