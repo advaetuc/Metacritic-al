@@ -72,8 +72,11 @@ export function generateReview(input: GenerateReviewInput, vibe: VibePack): Revi
 }
 
 export * from "./features";
+export * from "./daily";
+export * from "./battle";
 export * from "./matcher";
 export * from "./normalize";
+export * from "./opposites";
 export * from "./permalink";
 export * from "./prng";
 export * from "./rating";

@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import type { ReviewModel } from "@/lib/engine/types";
 import { ExportCard } from "@/components/export/export-card";
+import { buildBattlePermalink, buildReviewPermalink, generateReview, oppositeVibe } from "@/lib/engine";
+import { loadMoviePackById, loadVibePack } from "@/lib/data/load-review-packs";
 
 type ExportIntent = "download" | "share";
 
@@ -12,7 +15,9 @@ function safeFileName(title: string): string {
 }
 
 export function ReviewActions({ model, permalink }: { model: ReviewModel; permalink: string }) {
+  const router = useRouter();
   const [intent, setIntent] = useState<ExportIntent | null>(null);
+  const [countering, setCountering] = useState(false);
   const [message, setMessage] = useState("");
   const cardRef = useRef<HTMLElement | null>(null);
   const busy = useRef(false);
@@ -64,10 +69,44 @@ export function ReviewActions({ model, permalink }: { model: ReviewModel; permal
     catch { setMessage("Copy this link: " + new URL(permalink, window.location.origin).toString()); }
   }
 
+  async function counterRoast() {
+    if (countering) return;
+    setCountering(true);
+    setMessage("Finding the counter-critic…");
+    try {
+      const vibe = oppositeVibe(model.vibe);
+      const [vibePack, moviePack] = await Promise.all([
+        loadVibePack(vibe),
+        model.source === "curated" && model.movie.id
+          ? loadMoviePackById(model.movie.id)
+          : Promise.resolve(undefined),
+      ]);
+      const previousK = Number.parseInt(model.k, 36);
+      const k = Number.isSafeInteger(previousK) && previousK < Number.MAX_SAFE_INTEGER ? previousK + 1 : 0;
+      const input = {
+        title: model.movie.title,
+        vibe,
+        heat: model.heat,
+        sentiment: model.sentiment === "love" ? "hate" as const : "love" as const,
+        k,
+        ...(model.movie.genre ? { genre: model.movie.genre } : {}),
+        ...(moviePack ? { moviePack } : {}),
+      };
+      // Build the deterministic review here so invalid content fails before navigation.
+      generateReview(input, vibePack);
+      router.push(buildReviewPermalink(input, moviePack?.id));
+    } catch {
+      setMessage("Could not make the counter-roast. Please try again.");
+      setCountering(false);
+    }
+  }
+
   return (
     <section className="review-actions" aria-label="Review actions">
       <button type="button" onClick={() => setIntent("download")} disabled={Boolean(intent)}>Save Image</button>
       <button type="button" onClick={() => setIntent("share")} disabled={Boolean(intent)}>Share</button>
+      <button type="button" onClick={counterRoast} disabled={countering || Boolean(intent)}>{countering ? "Countering…" : "Counter-Roast"}</button>
+      <a className="review-actions__open" href={buildBattlePermalink(model)}>Start a roast battle</a>
       <button type="button" className="review-actions__link" onClick={copyLink}>Copy permalink</button>
       <a className="review-actions__open" href={permalink}>Open shareable review</a>
       <p aria-live="polite">{message}</p>

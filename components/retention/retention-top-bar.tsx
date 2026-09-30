@@ -21,6 +21,7 @@ export function RetentionTopBar() {
       <header className="retention-topbar" aria-label="Your activity">
         <Link className="retention-topbar__brand" href="/" aria-label="Metacritic-al home"><span aria-hidden="true">●</span> metacritic-al</Link>
         <div className="retention-topbar__actions">
+          <Link className="daily-nav-link" href="/daily/">Daily Roast</Link>
           <span className="streak-badge" aria-label={`${streak} day roast streak`} title="Your current daily roast streak">
             <span aria-hidden="true">🔥</span><strong data-testid="streak-count">{streak}</strong><span>{streak === 1 ? "day streak" : "day streaks"}</span>
           </span>
