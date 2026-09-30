@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { generateReview } from "@/lib/engine";
 import type { ReviewModel } from "@/lib/engine/types";
 import { loadCuratedMoviePack, loadVibePack } from "@/lib/data/load-review-packs";
@@ -149,6 +150,7 @@ export function RoastStudio() {
       {phase === "revealed" && review ? <div className="review-result"><GlassReviewCard model={review} /><ReviewActions model={review} permalink={reviewHref} /></div> : null}
       </div>
       {phase === "screening" ? <ScreeningSequence onComplete={finishScreening} /> : null}
+      <Link className="studio-about-link" href="/about/">About &amp; content policy</Link>
     </main>
   );
 }
