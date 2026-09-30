@@ -822,6 +822,46 @@ body {
   display: block;
 }
 
+.review-result { display: grid; gap: 14px; }
+.review-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 4px; }
+.review-actions button, .review-actions__open { display: inline-flex; min-height: 38px; align-items: center; justify-content: center; padding: 8px 13px; border: 1px solid rgb(255 255 255 / 16%); border-radius: 999px; background: rgb(18 23 26 / 88%); color: var(--color-ink-50); font: inherit; font-size: 0.75rem; text-decoration: none; cursor: pointer; }
+.review-actions button:hover, .review-actions__open:hover { border-color: rgb(43 255 136 / 46%); color: var(--color-reel-green); }
+.review-actions button:disabled { opacity: 0.55; cursor: progress; }
+.review-actions__link { background: transparent !important; }
+.review-actions p { flex-basis: 100%; min-height: 1em; margin: 0; color: var(--color-ink-500); font-size: 0.72rem; }
+.permalink-shell { display: grid; min-height: 100vh; place-items: center; padding: 24px; }
+.permalink-result { display: grid; width: min(100%, 740px); gap: 12px; }
+.permalink-result > .landing-kicker { margin: 0; color: var(--color-reel-green); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; }
+.permalink-result .review-card-wrap { width: 100%; }
+.permalink-home { justify-self: center; margin: 12px; color: var(--color-ink-300); font-size: 0.8rem; }
+.permalink-error { width: min(100%, 500px); padding: 32px; }
+.permalink-error h1 { margin-top: 0; }
+.export-portal { position: fixed; z-index: 0; top: 0; left: -10000px; width: 1080px; pointer-events: none; }
+.export-card { width: 1080px; min-height: 760px; padding: 66px 72px 48px; overflow: visible; border: 2px solid #35413b; border-radius: 38px; background: radial-gradient(ellipse at 15% 0%, #13251b 0%, #101715 38%, #080c0a 100%); color: #f4f7f5; font-family: var(--font-bricolage), Arial, Helvetica, sans-serif; box-shadow: inset 0 2px 0 #3a4b40, 0 34px 86px #000000; }
+.export-user { display: flex; align-items: center; gap: 18px; min-height: 62px; }
+.export-avatar { display: grid; width: 64px; height: 64px; place-items: center; flex: 0 0 auto; border: 2px solid; border-radius: 50%; font-size: 25px; font-weight: 800; }
+.export-user-meta { display: grid; gap: 5px; }
+.export-user-meta strong { color: #2bff88; font-size: 22px; }
+.export-user-meta small, .export-year { color: #8e9a94; font-size: 16px; }
+.export-rewatch { margin-left: auto; padding: 10px 14px; border: 1px solid #705a2b; border-radius: 99px; color: #ffc857; font-size: 15px; }
+.export-movie { display: grid; grid-template-columns: 208px minmax(0, 1fr); gap: 36px; align-items: center; margin: 40px 0 32px; }
+.export-poster { position: relative; display: grid; width: 208px; height: 312px; place-items: center; overflow: hidden; border: 2px solid #68736c; border-radius: 14px; box-shadow: 0 20px 44px #00000080; }
+.export-poster svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: #07100b99; }
+.export-poster span { position: relative; color: #ffffffe8; font-size: 64px; font-weight: 800; letter-spacing: -5px; text-shadow: 0 2px 16px #000000; }
+.export-movie-meta > small:first-child { color: #2bff88; font-size: 15px; font-weight: 750; letter-spacing: 2px; text-transform: uppercase; }
+.export-movie-meta h2 { margin: 10px 0 0; font-size: 52px; font-weight: 750; letter-spacing: -2px; line-height: 1.08; overflow-wrap: anywhere; }
+.export-year { display: block; margin-top: 12px; }
+.export-stars { display: flex; align-items: center; gap: 6px; margin-top: 22px; color: #ffc857; }
+.export-stars svg { width: 30px; height: 30px; overflow: visible; }
+.export-star-outline { fill: #ffc85714; stroke: #ffc8576b; stroke-width: 1; }
+.export-star-fill { fill: #ffc857; }
+.export-stars b { margin-left: 9px; font-size: 20px; }
+.export-rule { height: 2px; background: linear-gradient(90deg, #ffffff55, #ffffff08); }
+.export-body { max-width: 900px; margin: 30px 0; color: #f4f7f5; font-family: var(--font-newsreader), Georgia, serif; font-size: 29px; line-height: 1.55; }
+.export-tags { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 28px; padding: 0; list-style: none; }
+.export-tags li { padding: 9px 13px; border: 1px solid #245d3d; border-radius: 999px; background: #10271a; color: #2bff88; font-size: 15px; }
+.export-footer { display: flex; gap: 27px; padding-top: 19px; border-top: 1px solid #ffffff20; color: #b9c4be; font-size: 16px; }
+.export-footer strong { margin-left: auto; color: #8e9a94; font-size: 14px; letter-spacing: 2px; }
 .review-card-wrap {
   width: 100%;
   perspective: 1100px;

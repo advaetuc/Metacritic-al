@@ -30,15 +30,19 @@ export async function loadCuratedMoviePack(title: string): Promise<MoviePack | u
   const match = matchMovieTitle(title, index);
   if (match.kind !== "exact") return undefined;
 
-  const cached = movieCache.get(match.entry.id);
-  if (cached) return cached;
+ const cached = movieCache.get(match.entry.id);
+  return cached ?? loadMoviePackById(match.entry.id);
+}
 
+export function loadMoviePackById(id: string): Promise<MoviePack> {
+  const cached = movieCache.get(id);
+  if (cached) return cached;
   const request = loadContentManifest().then((manifest) => {
-    const path = manifest.movies[match.entry.id];
-    if (!path) throw new Error(`No content pack is available for movie "${match.entry.id}".`);
+    const path = manifest.movies[id];
+    if (!path) throw new Error(`No content pack is available for movie "${id}".`);
     return loadJson<MoviePack>(path);
   });
-  movieCache.set(match.entry.id, request);
-  request.catch(() => movieCache.delete(match.entry.id));
+  movieCache.set(id, request);
+  request.catch(() => movieCache.delete(id));
   return request;
 }

@@ -11,6 +11,8 @@ import { HeroSearch } from "./hero-search";
 import { HeatDial } from "./heat-dial";
 import { ScreeningSequence } from "./screening-sequence";
 import { GlassReviewCard } from "./glass-review-card";
+import { ReviewActions } from "@/components/share/review-actions";
+import { buildReviewPermalink } from "@/lib/engine/permalink";
 
 const GENRES: ReadonlyArray<{ value: GenreId; label: string }> = [
   { value: "action", label: "Action" },
@@ -44,7 +46,8 @@ export function RoastStudio() {
   const setSentiment = useStudioStore((state) => state.setSentiment);
   const phase = useStudioStore((state) => state.phase);
   const setPhase = useStudioStore((state) => state.setPhase);
-  const [review, setReview] = useState<ReviewModel | null>(null);
+ const [review, setReview] = useState<ReviewModel | null>(null);
+  const [reviewHref, setReviewHref] = useState("");
   const [screeningComplete, setScreeningComplete] = useState(false);
   const [reroll, setReroll] = useState(0);
   const [error, setError] = useState("");
@@ -71,7 +74,7 @@ export function RoastStudio() {
         loadVibePack(draft.vibe),
         loadCuratedMoviePack(draft.title).catch(() => undefined),
       ]);
-      const generated = generateReview({
+      const input = {
         title: draft.title,
         vibe: draft.vibe,
         heat: draft.heat,
@@ -79,8 +82,10 @@ export function RoastStudio() {
         k: currentReroll,
         ...(draft.genre ? { genre: draft.genre } : {}),
         ...(moviePack ? { moviePack } : {}),
-      }, vibePack);
+      };
+      const generated = generateReview(input, vibePack);
       setReview(generated);
+      setReviewHref(buildReviewPermalink(input, moviePack?.id));
     } catch {
       setError("Review content could not load. Try again.");
       setPhase("idle");
@@ -141,7 +146,7 @@ export function RoastStudio() {
         </div>
         <p className="studio-caption">Currently speaking as <strong>{selectedVibe}</strong> at <strong>{heat}/3 heat</strong>.</p>
       </section>
-      {phase === "revealed" && review ? <GlassReviewCard model={review} /> : null}
+      {phase === "revealed" && review ? <div className="review-result"><GlassReviewCard model={review} /><ReviewActions model={review} permalink={reviewHref} /></div> : null}
       </div>
       {phase === "screening" ? <ScreeningSequence onComplete={finishScreening} /> : null}
     </main>
