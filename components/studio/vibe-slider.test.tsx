@@ -52,4 +52,20 @@ describe("VibeSlider keyboard navigation", () => {
     expect(onChange).toHaveBeenLastCalledWith("conspiracy");
     expect(screen.getByRole("radio", { name: "Conspiracy theorist" })).toHaveFocus();
   });
+
+  it("keeps bonus vibes locked until their roast threshold and then enables them", () => {
+    const onChange = vi.fn();
+    const { rerender } = render(<VibeSlider value="film-student" onChange={onChange} totalRoasts={4} />);
+    const sports = screen.getByRole("radio", { name: "Sports commentator, locked, unlocks after 5 roasts" });
+    expect(sports).toBeDisabled();
+
+    rerender(<VibeSlider value="film-student" onChange={onChange} totalRoasts={5} />);
+    const unlockedSports = screen.getByRole("radio", { name: "Sports commentator" });
+    expect(unlockedSports).toBeEnabled();
+    fireEvent.click(unlockedSports);
+    expect(onChange).toHaveBeenCalledWith("sports");
+    fireEvent.keyDown(screen.getByRole("radio", { name: "Film student" }), { key: "End" });
+    expect(onChange).toHaveBeenLastCalledWith("sports");
+    expect(unlockedSports).toHaveFocus();
+  });
 });

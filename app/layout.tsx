@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { bricolage, newsreader } from "@/app/fonts";
 import { AmbientBackdrop } from "@/components/backdrop/ambient-backdrop";
 import { MotionProvider } from "@/components/providers/motion-provider";
+import { RetentionTopBar } from "@/components/retention/retention-top-bar";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -31,7 +32,10 @@ export default function RootLayout({
       <body>
         <MotionProvider>
           <AmbientBackdrop />
-          <div className="app-content">{children}</div>
+          <div className="app-content">
+            <RetentionTopBar />
+            {children}
+          </div>
         </MotionProvider>
       </body>
     </html>

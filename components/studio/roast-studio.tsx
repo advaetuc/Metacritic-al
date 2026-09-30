@@ -7,13 +7,14 @@ import type { ReviewModel } from "@/lib/engine/types";
 import { loadCuratedMoviePack, loadVibePack } from "@/lib/data/load-review-packs";
 import { useStudioStore } from "@/lib/state/studio-store";
 import type { GenreId, Sentiment } from "@/lib/engine/types";
-import { BASE_VIBES, VibeSlider } from "./vibe-slider";
+import { ALL_VIBES, VibeSlider } from "./vibe-slider";
 import { HeroSearch } from "./hero-search";
 import { HeatDial } from "./heat-dial";
 import { ScreeningSequence } from "./screening-sequence";
 import { GlassReviewCard } from "./glass-review-card";
 import { ReviewActions } from "@/components/share/review-actions";
 import { buildReviewPermalink } from "@/lib/engine/permalink";
+import { useRetentionStore } from "@/lib/state/retention-store";
 
 const GENRES: ReadonlyArray<{ value: GenreId; label: string }> = [
   { value: "action", label: "Action" },
@@ -46,13 +47,14 @@ export function RoastStudio() {
   const setGenre = useStudioStore((state) => state.setGenre);
   const setSentiment = useStudioStore((state) => state.setSentiment);
   const phase = useStudioStore((state) => state.phase);
+  const totalRoasts = useRetentionStore((state) => state.totalRoasts);
   const setPhase = useStudioStore((state) => state.setPhase);
  const [review, setReview] = useState<ReviewModel | null>(null);
   const [reviewHref, setReviewHref] = useState("");
   const [screeningComplete, setScreeningComplete] = useState(false);
   const [reroll, setReroll] = useState(0);
   const [error, setError] = useState("");
-  const selectedVibe = BASE_VIBES.find((item) => item.id === vibe)?.label ?? "Film student";
+  const selectedVibe = ALL_VIBES.find((item) => item.id === vibe)?.label ?? "Film student";
 
   const finishScreening = useCallback(() => setScreeningComplete(true), []);
 
@@ -85,8 +87,16 @@ export function RoastStudio() {
         ...(moviePack ? { moviePack } : {}),
       };
       const generated = generateReview(input, vibePack);
+      const permalink = buildReviewPermalink(input, moviePack?.id);
       setReview(generated);
-      setReviewHref(buildReviewPermalink(input, moviePack?.id));
+      setReviewHref(permalink);
+      useRetentionStore.getState().recordRoast({
+        url: permalink,
+        title: generated.movie.title,
+        vibe: generated.vibe,
+        rating: generated.rating,
+        ts: Date.now(),
+      });
     } catch {
       setError("Review content could not load. Try again.");
       setPhase("idle");
@@ -135,7 +145,7 @@ export function RoastStudio() {
             </div>
           </div>
 
-          <VibeSlider value={vibe} onChange={setVibe} />
+          <VibeSlider value={vibe} onChange={setVibe} totalRoasts={totalRoasts} />
           <HeatDial value={heat} onChange={setHeat} />
 
           <button className="studio-submit" type="button" disabled={!title.trim() || phase === "screening"} onClick={roast}>
