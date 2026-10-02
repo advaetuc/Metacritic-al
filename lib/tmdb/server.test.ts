@@ -253,6 +253,30 @@ describe("TMDB local proxy", () => {
     expect(calls[0]?.init.headers).not.toHaveProperty("Authorization");
   });
 
+  it("evicts poster bodies to keep the per-instance cache within its byte budget", async () => {
+    const poster = new Uint8Array(TMDB_LIMITS.maxImageBytes);
+    poster.set([0xff, 0xd8, 0xff]);
+    const { fetcher, calls } = makeFetch(() => new Response(asArrayBuffer(poster), {
+      status: 200,
+      headers: { "Content-Type": "image/jpeg", "Content-Length": String(poster.byteLength) },
+    }));
+
+    for (const name of ["first.jpg", "second.jpg", "third.jpg", "fourth.jpg"]) {
+      const response = await handleTmdbImage(new Request(`http://localhost/api/tmdb/image/${name}`), [name], fetcher);
+      expect(response.status).toBe(200);
+      await response.arrayBuffer();
+    }
+    const firstAgain = await handleTmdbImage(
+      new Request("http://localhost/api/tmdb/image/first.jpg"),
+      ["first.jpg"],
+      fetcher,
+    );
+
+    expect(firstAgain.status).toBe(200);
+    expect(calls).toHaveLength(5);
+    expect(TMDB_LIMITS.maxCacheBytes).toBe(16 * 1024 * 1024);
+  });
+
   it("rejects HTML, corrupt images, and images over five MiB", async () => {
     const html = await handleTmdbImage(
       new Request("http://localhost/api/tmdb/image/html.jpg"),

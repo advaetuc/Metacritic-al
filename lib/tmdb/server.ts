@@ -12,6 +12,7 @@ const REQUEST_TIMEOUT_MS = 5_000;
 const MAX_JSON_BYTES = 1024 * 1024;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_CACHE_ENTRIES = 100;
+const MAX_CACHE_BYTES = 16 * 1024 * 1024;
 const SEARCH_TTL_MS = 5 * 60 * 1_000;
 const DETAILS_TTL_MS = 60 * 60 * 1_000;
 const IMAGE_TTL_MS = 24 * 60 * 60 * 1_000;
@@ -22,6 +23,7 @@ type CachedBody = string | Uint8Array;
 interface CacheEntry {
   status: number;
   body: CachedBody;
+  sizeBytes: number;
   headers: Record<string, string>;
   expiresAt: number;
 }
@@ -42,6 +44,18 @@ class TmdbFailure extends Error {
 }
 
 const responseCache = new Map<string, CacheEntry>();
+let responseCacheBytes = 0;
+
+function bodyByteLength(body: CachedBody): number {
+  return typeof body === "string" ? new TextEncoder().encode(body).byteLength : body.byteLength;
+}
+
+function deleteCachedEntry(key: string): void {
+  const entry = responseCache.get(key);
+  if (!entry) return;
+  responseCache.delete(key);
+  responseCacheBytes = Math.max(0, responseCacheBytes - entry.sizeBytes);
+}
 
 function copyBody(body: CachedBody): BodyInit {
   if (typeof body === "string") return body;
@@ -61,7 +75,7 @@ function readCache(key: string): Response | null {
   const entry = responseCache.get(key);
   if (!entry) return null;
   if (entry.expiresAt <= Date.now()) {
-    responseCache.delete(key);
+    deleteCachedEntry(key);
     return null;
   }
   // Refresh insertion order to make the bounded map an LRU cache.
@@ -71,15 +85,17 @@ function readCache(key: string): Response | null {
 }
 
 function writeCache(key: string, entry: CacheEntry): void {
-  responseCache.delete(key);
-  responseCache.set(key, {
+  deleteCachedEntry(key);
+  const storedEntry = {
     ...entry,
     body: typeof entry.body === "string" ? entry.body : new Uint8Array(entry.body),
-  });
-  while (responseCache.size > MAX_CACHE_ENTRIES) {
+  };
+  responseCache.set(key, storedEntry);
+  responseCacheBytes += storedEntry.sizeBytes;
+  while (responseCache.size > MAX_CACHE_ENTRIES || responseCacheBytes > MAX_CACHE_BYTES) {
     const oldestKey = responseCache.keys().next().value as string | undefined;
     if (oldestKey === undefined) break;
-    responseCache.delete(oldestKey);
+    deleteCachedEntry(oldestKey);
   }
 }
 
@@ -93,6 +109,7 @@ function responseWithCache(
   const entry: CacheEntry = {
     status,
     body,
+    sizeBytes: bodyByteLength(body),
     headers: { ...headers },
     expiresAt: Date.now() + Math.max(0, cacheMs),
   };
@@ -520,10 +537,12 @@ export async function handleTmdbImage(request: Request, rawPath: string | readon
 /** Reset only the process-local cache for isolated route tests. */
 export function resetTmdbCacheForTests(): void {
   responseCache.clear();
+  responseCacheBytes = 0;
 }
 
 export const TMDB_LIMITS = {
   requestTimeoutMs: REQUEST_TIMEOUT_MS,
   maxImageBytes: MAX_IMAGE_BYTES,
   maxCacheEntries: MAX_CACHE_ENTRIES,
+  maxCacheBytes: MAX_CACHE_BYTES,
 } as const;

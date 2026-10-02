@@ -1,7 +1,10 @@
 {
   "name": "metacritic-al",
-  "version": "0.1.0",
+  "version": "2.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
     "prebuild": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/build-content.ts",
