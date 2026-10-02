@@ -2,88 +2,92 @@
 
 ### Your taste, on trial.
 
-[![License: MIT](https://img.shields.io/github/license/advaetuc/Metacritic-al)](https://github.com/advaetuc/Metacritic-al/blob/main/LICENSE)
-[![Build](https://img.shields.io/github/checks-status/advaetuc/Metacritic-al/main?label=build)](https://github.com/advaetuc/Metacritic-al/actions)
-[![Version](https://img.shields.io/github/v/release/advaetuc/Metacritic-al)](https://github.com/advaetuc/Metacritic-al/releases)
+Metacritic-al is a locally run Next.js demo that deterministically generates original satirical movie-review cards. It uses curated content and procedural rules; optional TMDB search provides movie metadata and poster images. TMDB reviews, authors, and review scores are not used as card content.
 
-**[Open the live demo](https://metacritic-al.vercel.app)**
-
-Metacritic-al is a zero-backend, static Next.js application that turns movie titles into deterministic, satirical review cards. Choose a critic vibe and heat level, then share the result as a permalink or image.
-
-> **Project status:** Metacritic-al remains in active development. The current app generates original satirical reviews from curated YAML content and procedural rules. The long-term goal is to source publicly available film reviews, select source material for the chosen critic vibe, transform it into satire, and display the result on the review card. That public-review sourcing and transformation workflow is not implemented in the current release.
+The V2.1 demo runs one Next.js Node process on loopback. Browser calls to TMDB go through same-origin local routes, and the optional API token stays server-side. No hosted backend is required.
 
 ## Features
 
 | Feature | Description |
 | --- | --- |
-| Deterministic review engine | Seeds an `xmur3` and `mulberry32` PRNG from the normalized title, vibe, heat, sentiment, and reroll counter. Identical inputs reproduce the same review. |
-| Curated and fallback generation | Uses curated movie packs when available and title-derived features with procedural rules for other titles. |
-| YAML-to-JSON content pipeline | Validates YAML content with Zod and emits a compact index, content-hashed movie and vibe packs, and Open Graph images at build time. |
-| Cinematic interface | Glass-inspired review cards, an animated ambient background, a screening sequence, responsive layouts, and reduced-motion support. |
-| Save and share | Renders a solid-background export twin with `html2canvas` for PNG downloads, and uses native sharing where supported. |
-| Daily Roast | Selects the same film, vibe, and heat for everyone on a given UTC date. |
-| Roast Battle | Shows a shareable, side-by-side comparison of two critic vibes reviewing the same film. |
-| Gamification | Keeps local review history, tracks daily streaks, and displays progress toward vibe unlocks. |
+| Deterministic review engine | Seeds `xmur3` and `mulberry32` from the normalized title, vibe, heat, sentiment, and reroll counter. |
+| Curated and typed-title generation | Uses curated film packs when available and keeps the title-only V1 flow usable without TMDB. |
+| Local content pipeline | Validates YAML content and emits the JSON packs used by the app. |
+| Save and share | Exports a card PNG and creates permalinks that preserve generation inputs. |
+| Retention features | Includes Daily Roast, Roast Battle, local history, streaks, and vibe unlocks. |
 
-## Architecture
-
-Metacritic-al uses the Next.js App Router with `output: "export"`. Reviews are generated in the browser; the application has no runtime API, database, or review-generation backend.
-
-The build pipeline validates YAML files under `content/` and writes static JSON packs and an index under `public/data/`. It also generates curated Open Graph images under `public/og/`. Next.js exports the application to `out/` for static hosting.
-
-Review permalinks encode the inputs needed to reproduce a card, including its title, vibe, heat, sentiment, and reroll counter. The app can rebuild a review from its URL without relying on local storage.
-
-For curated titles, the app loads the matching movie pack and uses its metadata and authored review rules. For other titles, it uses the procedural engine and title-derived features. Both paths use the same deterministic generation engine.
-
-## Technology
-
-- Next.js App Router with static export
-- TypeScript
-- Tailwind CSS v4
-- Framer Motion
-- Zustand
-- `html2canvas`
-- YAML and Zod for build-time content validation
-
-## Local development
+## Local setup
 
 ### Requirements
 
-- Node.js 22.18 or newer
+- Node.js 20.9 or newer
 - npm
 
-### Install and run
+From PowerShell, install dependencies and enter the project:
 
-```bash
+```powershell
 git clone https://github.com/advaetuc/Metacritic-al.git
-cd Metacritic-al
+Set-Location Metacritic-al
 npm ci
-npm run prebuild
+```
+
+### Optional TMDB access
+
+Copy the safe example file and add your TMDB API Read Access Token to the root `.env.local` file:
+
+```powershell
+if (!(Test-Path .env.local)) { Copy-Item .env.local.example .env.local }
+notepad .env.local
+```
+
+Use the variable name `TMDB_API_READ_ACCESS_TOKEN`. Keep the value private; do not put it in client code or commit `.env.local`. The real environment file is Git-ignored. Without a token, TMDB search and posters are disabled gracefully, while typed-title V1 card generation remains available.
+
+### Run the demo
+
+Development mode:
+
+```powershell
 npm run dev
 ```
 
-Run `npm run prebuild` before `npm run dev` to generate the static JSON content and Open Graph images. The development server does not generate these assets automatically.
+Production-mode local demo:
 
-Open [http://localhost:3000](http://localhost:3000).
+```powershell
+npm run demo
+```
 
-### Build and checks
+Both commands bind to `127.0.0.1` and serve the app at [http://127.0.0.1:3000](http://127.0.0.1:3000). `npm run demo` builds content and the Next.js app, then starts the production server in the same process workflow. Press **Ctrl+C** in the terminal to stop it. No separate proxy process or manual content-generation command is needed.
 
-```bash
-npm run build
+## Checks
+
+Automated tests use fixtures and do not require live TMDB calls. Run them with the token absent or blank:
+
+```powershell
 npm test
+npx vitest run --exclude e2e/**
+npm run test:e2e
+npx tsc --noEmit
 npm run lint
 ```
 
-`npm run build` automatically runs the `prebuild` lifecycle script before `next build`. The resulting static site is written to `out/`.
+`npm run test:e2e` starts its own development server by default. To run the permalink/export journey against the production demo without a live TMDB call, start `npm run demo` in one PowerShell window with `TMDB_API_READ_ACCESS_TOKEN` blank, then run this in a second window:
 
-## Deployment
+```powershell
+$env:PLAYWRIGHT_EXTERNAL_SERVER = "1"
+$env:PLAYWRIGHT_BASE_URL = "http://127.0.0.1:3000"
+npm run test:e2e
+Remove-Item Env:\PLAYWRIGHT_EXTERNAL_SERVER
+Remove-Item Env:\PLAYWRIGHT_BASE_URL
+```
 
-Import `advaetuc/Metacritic-al` into Vercel and use `npm run build` as the build command. The Next.js configuration enables static export, trailing-slash routes, and unoptimized images; Vercel serves the generated `out/` directory.
+## TMDB attribution
 
-Response headers and cache rules are defined in `vercel.json`, because Next.js response headers are not applied to static exports. The configuration includes `Content-Security-Policy: default-src 'self'`, content-type and referrer protections, and cache policies for exported assets.
+The Credits section identifies TMDB as the source of optional movie metadata and images. Review-card copy is generated by Metacritic-al and is original. This product uses the TMDB API but is not endorsed or certified by TMDB. Refer to TMDB’s current terms before any use beyond this non-commercial local demo.
 
-> **CSP compatibility:** The exported HTML contains inline Next.js bootstrap scripts. The strict `default-src 'self'` policy blocks inline scripts, including those bootstrap scripts, and can prevent the client-side interface from hydrating. Verify this behavior on a Vercel preview before deployment and use a CSP strategy compatible with Next.js static export. A plain static file server does not apply the headers from `vercel.json`.
+## Project scope
+
+This project is prepared for a localhost college demo. Public hosting, Vercel, CDN configuration, analytics, CI, and remote persistence are out of scope. The project remains in development; public-film-review sourcing is a future goal and is not implemented in this version.
 
 ## License
 
-The project is released under the [MIT License](LICENSE). This license covers the project’s code and does not grant rights to third-party review content or other external materials that may be used in future development.
+The project code is released under the [MIT License](LICENSE). That license does not grant rights to third-party TMDB data or images.

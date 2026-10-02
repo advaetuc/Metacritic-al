@@ -6,14 +6,6 @@ import { RetentionTopBar } from "@/components/retention/retention-top-bar";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ??
-      (process.env.VERCEL_PROJECT_PRODUCTION_URL
-        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-        : process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}`
-          : "https://metacritic-al.vercel.app"),
-  ),
   title: "Metacritic-al — Your taste, on trial",
   description: "Name a movie. Get roasted.",
 };

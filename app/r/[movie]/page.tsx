@@ -20,32 +20,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { movie: id } = await params;
   const pack = await getMoviePackForPage(id);
   if (!pack) return { title: "Review not found" };
-  const url = `/r/${pack.id}/`;
-  const image = {
-    url: `/og/${pack.id}.png`,
-    width: 1200,
-    height: 630,
-    type: "image/png",
-    alt: `Metacritic-al preview for ${pack.title}`,
-  };
   const description = `A deterministic, fictional review of ${pack.title} (${pack.year}). Your taste, on trial.`;
   return {
     title: `${pack.title} review`,
     description,
-    alternates: { canonical: url },
     openGraph: {
       type: "article",
-      url,
       title: `${pack.title} review | Metacritic-al`,
       description,
       siteName: "Metacritic-al",
-      images: [image],
     },
     twitter: {
-      card: "summary_large_image",
+      card: "summary",
       title: `${pack.title} review | Metacritic-al`,
       description,
-      images: [image.url],
     },
   };
 }

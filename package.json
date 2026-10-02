@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
-    "prebuild": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/build-content.ts && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/og-generate.ts",
+    "prebuild": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/build-content.ts",
     "build": "next build",
     "start": "next start --hostname 127.0.0.1",
     "demo": "npm run build && npm run start",

@@ -21,7 +21,7 @@ test("a review permalink reproduces the same generated review in another browser
 
   const destinationContext = await browser.newContext();
   const destinationPage = await destinationContext.newPage();
-  await destinationPage.goto(new URL(href, "http://127.0.0.1:3100").toString());
+  await destinationPage.goto(new URL(href, sourcePage.url()).toString());
   await expect(destinationPage.locator(".review-card")).toBeVisible({ timeout: 10_000 });
   await expect(destinationPage.getByRole("status", { name: "Review text" })).toHaveText(sourceReview.body ?? "");
   await expect(destinationPage.locator(".review-stars")).toHaveAttribute("aria-label", sourceReview.rating ?? "");
