@@ -28,7 +28,7 @@ export function generateReview(input: GenerateReviewInput, vibe: VibePack): Revi
   const metadata = normalizeMovieMetadata(input.metadata);
   const generationInput = { ...input, ...(metadata ? { metadata } : { metadata: undefined }) };
   const title = displayTitle(input.moviePack?.title ?? input.title);
-  const genre = input.genre ?? input.moviePack?.genres[0] ?? metadata?.genres?.[0];
+  const genre = input.genre ?? input.moviePack?.genres[0];
   const body = truncateText(
     composeReviewBody({ input: generationInput, vibe, random }),
     800,

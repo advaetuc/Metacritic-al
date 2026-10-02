@@ -30,7 +30,10 @@ const vibe: VibePack = {
   },
   rules: {
     origin: [{ t: "#opener# #body# #kicker#" }],
-    opener: [{ t: "#titleShort# has a pulse." }],
+    opener: [
+      { t: "#titleShort# has a pulse." },
+      { t: "#titleShort# is a comedy beat.", g: ["comedy"] },
+    ],
     body: [{ t: "The final image earns its place." }],
     kicker: [{ t: "I will be thinking about it for days." }],
   },
@@ -131,14 +134,14 @@ describe("deterministic review engine", () => {
   });
 
   it("keeps V1 outputs identical when non-seed metadata changes", () => {
-    const base = makeInput(11);
+    const base = { ...makeInput(11), genre: undefined };
     const first = generateReview({ ...base, metadata: {
       tmdbId: 603, title: base.title, year: 1999, genres: ["scifi"],
       overviewTokens: ["hacker", "reality"], taglineTokens: ["simulated"], runtime: 136,
       voteAverage: 8.7, voteCount: 25_000, posterPath: "/matrix.jpg",
     } }, vibe);
     const second = generateReview({ ...base, metadata: {
-      tmdbId: 603, title: base.title, year: 1999, genres: ["scifi"],
+      tmdbId: 603, title: base.title, year: 1999, genres: ["comedy"],
       overviewTokens: ["code", "simulation"], taglineTokens: ["systems"], runtime: 140,
       voteAverage: 2.1, voteCount: 9, posterPath: "/other.png",
     } }, vibe);
@@ -154,7 +157,8 @@ describe("deterministic review engine", () => {
     const unknown = generateReview({ ...input, metadata: { genres: ["not-a-genre"] as never } }, vibe);
     expect(unknown.movie.genre).toBeUndefined();
     const known = generateReview({ ...input, metadata: { genres: ["thriller"] } }, vibe);
-    expect(known.movie.genre).toBe("thriller");
+    expect(known.movie.genre).toBeUndefined();
+    expect(known.movie.genres).toEqual(["thriller"]);
   });
 
   it("does not perform network requests during engine generation", () => {

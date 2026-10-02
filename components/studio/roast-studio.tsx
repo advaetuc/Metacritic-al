@@ -36,7 +36,7 @@ const SENTIMENTS: ReadonlyArray<{ value: Sentiment; label: string; icon: string 
   { value: "hate", label: "Hate it", icon: "✕" },
 ];
 
-export function RoastStudio() {
+export function RoastStudio({ initialTitle }: { initialTitle?: string } = {}) {
   const title = useStudioStore((state) => state.draft.title);
   const vibe = useStudioStore((state) => state.draft.vibe);
   const heat = useStudioStore((state) => state.draft.heat);
@@ -57,6 +57,10 @@ export function RoastStudio() {
   const selectedVibe = ALL_VIBES.find((item) => item.id === vibe)?.label ?? "Film student";
 
   const finishScreening = useCallback(() => setScreeningComplete(true), []);
+
+  useEffect(() => {
+    if (initialTitle !== undefined) useStudioStore.getState().setTitle(initialTitle);
+  }, [initialTitle]);
 
   useEffect(() => {
     if (phase === "screening" && screeningComplete && review) setPhase("revealed");

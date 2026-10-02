@@ -83,6 +83,7 @@ export function ReviewActions({ model, permalink }: { model: ReviewModelCompatib
       ]);
       const previousK = Number.parseInt(model.k, 36);
       const k = Number.isSafeInteger(previousK) && previousK < Number.MAX_SAFE_INTEGER ? previousK + 1 : 0;
+      const movieMetadata = model.v === 2 ? model.movie : undefined;
       const input = {
         title: model.movie.title,
         vibe,
@@ -90,6 +91,18 @@ export function ReviewActions({ model, permalink }: { model: ReviewModelCompatib
         sentiment: model.sentiment === "love" ? "hate" as const : "love" as const,
         k,
         ...(model.movie.genre ? { genre: model.movie.genre } : {}),
+        ...(movieMetadata?.tmdbId !== undefined ? { metadata: {
+          tmdbId: movieMetadata.tmdbId,
+          title: model.movie.title,
+          ...(movieMetadata.year !== undefined ? { year: movieMetadata.year } : {}),
+          ...(movieMetadata.genres ? { genres: movieMetadata.genres } : {}),
+          ...(movieMetadata.overviewTokens ? { overviewTokens: movieMetadata.overviewTokens } : {}),
+          ...(movieMetadata.taglineTokens ? { taglineTokens: movieMetadata.taglineTokens } : {}),
+          ...(movieMetadata.runtime !== undefined ? { runtime: movieMetadata.runtime } : {}),
+          ...(movieMetadata.voteAverage !== undefined ? { voteAverage: movieMetadata.voteAverage } : {}),
+          ...(movieMetadata.voteCount !== undefined ? { voteCount: movieMetadata.voteCount } : {}),
+          ...(movieMetadata.posterPath ? { posterPath: movieMetadata.posterPath } : {}),
+        } } : {}),
         ...(moviePack ? { moviePack } : {}),
       };
       // Build the deterministic review here so invalid content fails before navigation.
