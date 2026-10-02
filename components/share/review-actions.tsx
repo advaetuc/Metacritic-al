@@ -2,9 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createPortal } from "react-dom";
 import type { ReviewModelCompatible } from "@/lib/engine/types";
-import { ExportCard } from "@/components/export/export-card";
+import { ExportHost, captureWithProceduralRetry } from "@/components/export/export-host";
 import { buildBattlePermalink, buildReviewPermalink, generateReview, oppositeVibe } from "@/lib/engine";
 import { loadMoviePackById, loadVibePack } from "@/lib/data/load-review-packs";
 
@@ -31,8 +30,13 @@ export function ReviewActions({ model, permalink }: { model: ReviewModelCompatib
         await document.fonts?.ready;
         const { default: html2canvas } = await import("html2canvas");
         if (cancelled || !cardRef.current) return;
-        const canvas = await html2canvas(cardRef.current, { scale: 2, backgroundColor: "#080c0a", useCORS: true, logging: false });
-        const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("PNG encoding failed.")), "image/png"));
+        const blob = await captureWithProceduralRetry(cardRef.current, async (card) => {
+          const canvas = await html2canvas(card, { scale: 2, backgroundColor: null, useCORS: true, logging: false });
+          if (canvas.width <= 0 || canvas.height <= 0) throw new Error("Canvas capture was empty.");
+          const png = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("PNG encoding failed.")), "image/png"));
+          if (png.size === 0) throw new Error("PNG output was empty.");
+          return png;
+        });
         const filename = safeFileName(model.movie.title) + "-metacritic-al.png";
         if (intent === "share") {
           const file = new File([blob], filename, { type: "image/png" });
@@ -123,7 +127,7 @@ export function ReviewActions({ model, permalink }: { model: ReviewModelCompatib
       <button type="button" className="review-actions__link" onClick={copyLink}>Copy permalink</button>
       <a className="review-actions__open" href={permalink}>Open shareable review</a>
       <p aria-live="polite">{message}</p>
-      {intent && typeof document !== "undefined" ? createPortal(<div className="export-portal" aria-hidden="true"><ExportCard model={model} ref={cardRef} /></div>, document.body) : null}
+      {intent && typeof document !== "undefined" ? <ExportHost model={model} posterPath={model.v === 2 ? model.movie.posterPath : undefined} ref={cardRef} /> : null}
     </section>
   );
 }

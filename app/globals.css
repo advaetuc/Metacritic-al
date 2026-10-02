@@ -932,6 +932,8 @@ body {
 .export-poster { position: relative; display: grid; width: 208px; height: 312px; place-items: center; overflow: hidden; border: 2px solid #68736c; border-radius: 14px; box-shadow: 0 20px 44px #00000080; }
 .export-poster svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: #07100b99; }
 .export-poster span { position: relative; color: #ffffffe8; font-size: 64px; font-weight: 800; letter-spacing: -5px; text-shadow: 0 2px 16px #000000; }
+.export-poster-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.export-poster-image[hidden] { display: none; }
 .export-movie-meta > small:first-child { color: #2bff88; font-size: 15px; font-weight: 750; letter-spacing: 2px; text-transform: uppercase; }
 .export-movie-meta h2 { margin: 10px 0 0; font-size: 52px; font-weight: 750; letter-spacing: -2px; line-height: 1.08; overflow-wrap: anywhere; }
 .export-year { display: block; margin-top: 12px; }
@@ -1095,6 +1097,13 @@ body {
   background: linear-gradient(var(--poster-turn), var(--poster-top), var(--poster-bottom));
   box-shadow: 0 12px 24px rgb(0 0 0 / 24%);
   isolation: isolate;
+}
+
+.poster-tile--image {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  aspect-ratio: 2 / 3;
 }
 
 .poster-art {

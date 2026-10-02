@@ -1,11 +1,14 @@
 "use client";
 
 import { m, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
-import { useId, useMemo } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import type { CSSProperties, PointerEvent } from "react";
 import { normalizeTitle } from "@/lib/engine/normalize";
 import { xmur3 } from "@/lib/engine/prng";
 import type { ReviewModelCompatible } from "@/lib/engine/types";
+import { tmdbPosterUrl } from "@/lib/tmdb/client";
+
+/* eslint-disable @next/next/no-img-element -- The image is served by the same-origin proxy with fixed dimensions for reliable html2canvas export. */
 
 const FLOAT_SPRING = { stiffness: 90, damping: 18 };
 const POSTER_PALETTES = [
@@ -64,7 +67,16 @@ export function StarRating({ value }: { value: number }) {
   );
 }
 
-function PosterTile({ title }: { title: string }) {
+export function PosterTile({ title, posterPath }: { title: string; posterPath?: string }) {
+  const [failed, setFailed] = useState(false);
+  const [decoded, setDecoded] = useState(false);
+  const src = tmdbPosterUrl(posterPath);
+  useEffect(() => {
+    if (!src || failed || decoded) return;
+    const timeout = window.setTimeout(() => setFailed(true), 8000);
+    return () => window.clearTimeout(timeout);
+  }, [src, failed, decoded]);
+
   const hash = xmur3(normalizeTitle(title))();
   const [topColor, bottomColor] = POSTER_PALETTES[hash % POSTER_PALETTES.length]!;
   const words = title.trim().split(/\s+/u).filter(Boolean);
@@ -77,6 +89,29 @@ function PosterTile({ title }: { title: string }) {
     "--poster-turn": ((hash >>> 8) % 360) + "deg",
   } as CSSProperties;
 
+  if (src && !failed) {
+    return (
+      <img
+        className="poster-tile poster-tile--image"
+        src={src}
+        width={120}
+        height={180}
+        alt={`Poster for ${title}`}
+        loading="eager"
+        decoding="async"
+        onLoad={(event) => {
+          const image = event.currentTarget;
+          if (typeof image.decode !== "function") {
+            setDecoded(true);
+            return;
+          }
+          void image.decode().then(() => setDecoded(true), () => setFailed(true));
+        }}
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
   return (
     <div className="poster-tile" style={style} role="img" aria-label={"Procedural poster for " + title}>
       <svg className="poster-art" viewBox="0 0 120 170" aria-hidden="true">
@@ -86,6 +121,20 @@ function PosterTile({ title }: { title: string }) {
       </svg>
       <span className="poster-initials" aria-hidden="true">{initials || "F"}</span>
       <span className="poster-grain" aria-hidden="true" />
+    </div>
+  );
+}
+
+export function MovieMeta({ model, posterPath }: { model: ReviewModelCompatible; posterPath?: string }) {
+  return (
+    <div className="review-movie-row">
+      <PosterTile title={model.movie.title} posterPath={posterPath} />
+      <div className="review-movie-meta">
+        <p className="review-overline">{model.movie.genre ?? "Movie review"}</p>
+        <h2>{model.movie.title}</h2>
+        {model.movie.year ? <p className="review-year">{model.movie.year}</p> : null}
+        <StarRating value={model.rating} />
+      </div>
     </div>
   );
 }
@@ -141,6 +190,7 @@ export function GlassReviewCard({ model }: { model: ReviewModelCompatible }) {
     "--review-accent": vibeAccents[model.vibe] ?? "#2BFF88",
     "--avatar-hue": String(model.avatarSeed % 360),
   } as CSSProperties;
+  const posterPath = model.v === 2 ? model.movie.posterPath : undefined;
 
   function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
     if (reducedMotion || event.pointerType !== "mouse" || typeof window.matchMedia !== "function") return;
@@ -177,15 +227,7 @@ export function GlassReviewCard({ model }: { model: ReviewModelCompatible }) {
           {model.rewatch ? <span className="rewatch-chip">↻ Rewatch</span> : null}
         </header>
 
-        <div className="review-movie-row">
-          <PosterTile title={model.movie.title} />
-          <div className="review-movie-meta">
-            <p className="review-overline">{model.movie.genre ?? "Movie review"}</p>
-            <h2>{model.movie.title}</h2>
-            {model.movie.year ? <p className="review-year">{model.movie.year}</p> : null}
-            <StarRating value={model.rating} />
-          </div>
-        </div>
+        <MovieMeta model={model} posterPath={posterPath} />
 
         <div className="review-rule" aria-hidden="true" />
         <RoastBody text={model.body} />
