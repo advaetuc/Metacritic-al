@@ -1,19 +1,88 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useId, useMemo, useState } from "react";
 import { matchMovieTitle } from "@/lib/engine/matcher";
-import { useStudioStore } from "@/lib/state/studio-store";
-import { loadMovieIndex } from "@/lib/data/load-movie-index";
 import type { MovieIndexEntry } from "@/lib/engine/types";
+import { loadMovieIndex } from "@/lib/data/load-movie-index";
+import { useStudioStore } from "@/lib/state/studio-store";
+import {
+  normalizeTmdbSearchResponse,
+  tmdbErrorCode,
+  tmdbPosterUrl,
+  type TmdbSuggestion,
+} from "@/lib/tmdb/client";
+
+const SEARCH_DEBOUNCE_MS = 250;
+
+type SearchStatus = "idle" | "loading" | "ready" | "empty" | "disabled" | "offline" | "timeout" | "rate-limited" | "error";
+interface RemoteSearchState {
+  query: string;
+  revision: number;
+  movies: TmdbSuggestion[];
+  status: SearchStatus;
+}
+type SearchOption =
+  | { kind: "curated"; entry: MovieIndexEntry; title: string; year: number }
+  | { kind: "tmdb"; movie: TmdbSuggestion; title: string; year?: number };
+
+function PosterThumbnail({ path }: { path?: string }) {
+  const [failed, setFailed] = useState(false);
+  const src = tmdbPosterUrl(path);
+  if (!src || failed) return <span className="hero-search__poster-placeholder" aria-hidden="true">◩</span>;
+  return <Image className="hero-search__poster" src={src} alt="" width={36} height={48} unoptimized onError={() => setFailed(true)} />;
+}
+
+function statusMessage(status: SearchStatus): string {
+  switch (status) {
+    case "loading": return "Searching movie titles…";
+    case "empty": return "No TMDB match. You can still use the typed title.";
+    case "disabled": return "TMDB search is not configured. Use the typed title to continue.";
+    case "offline": return "TMDB search is offline. Use the typed title to continue.";
+    case "timeout": return "TMDB search took too long. Use the typed title to continue.";
+    case "rate-limited": return "TMDB is rate-limiting searches. Use the typed title to continue.";
+    case "error": return "Movie search is unavailable right now. Use the typed title to continue.";
+    case "ready": return "Choose a movie suggestion, or keep your typed title.";
+    default: return "Search curated titles and live movie suggestions as you type.";
+  }
+}
+
+function statusFromError(error: unknown): SearchStatus {
+  const code = error instanceof SearchResponseError ? error.code : null;
+  if (code === "tmdb_disabled" || code === "tmdb_auth_failed") return "disabled";
+  if (code === "tmdb_timeout") return "timeout";
+  if (code === "tmdb_rate_limited") return "rate-limited";
+  if ((code === "tmdb_unavailable" && error instanceof SearchResponseError && error.status === 503)
+    || (error instanceof TypeError && !(error instanceof SearchResponseError))) return "offline";
+  return "error";
+}
+
+class SearchResponseError extends Error {
+  constructor(readonly code: string | null, readonly status: number | null = null) {
+    super("Movie search request failed.");
+  }
+}
 
 export function HeroSearch() {
   const id = useId();
   const title = useStudioStore((state) => state.draft.title);
+  const selectedMovie = useStudioStore((state) => state.draft.selectedMovie);
   const setTitle = useStudioStore((state) => state.setTitle);
+  const selectTmdbMovie = useStudioStore((state) => state.selectTmdbMovie);
+  const clearSelectedMovie = useStudioStore((state) => state.clearSelectedMovie);
   const [index, setIndex] = useState<MovieIndexEntry[]>([]);
   const [indexReady, setIndexReady] = useState(false);
   const [open, setOpen] = useState(false);
   const [activeOption, setActiveOption] = useState(-1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchRevision, setSearchRevision] = useState(0);
+  const [remoteState, setRemoteState] = useState<RemoteSearchState>({ query: "", revision: -1, movies: [], status: "idle" });
+  const normalizedSearchQuery = searchQuery.trim();
+  const currentRemoteState = remoteState.query === normalizedSearchQuery && remoteState.revision === searchRevision ? remoteState : null;
+  const status: SearchStatus = Array.from(normalizedSearchQuery).length < 2
+    ? "idle"
+    : currentRemoteState?.status ?? "loading";
+  const remoteMovies = currentRemoteState?.movies;
 
   useEffect(() => {
     let mounted = true;
@@ -22,7 +91,7 @@ export function HeroSearch() {
         if (mounted) setIndex(entries);
       })
       .catch(() => {
-        // The title can still be reviewed through the fallback path without curated data.
+        // Typed titles remain available when the curated index cannot load.
       })
       .finally(() => {
         if (mounted) setIndexReady(true);
@@ -32,17 +101,93 @@ export function HeroSearch() {
     };
   }, []);
 
-  // Debounce is intentionally zero: this compact local index is matched on each keystroke.
-  const match = useMemo(() => matchMovieTitle(title, index), [title, index]);
-  const candidate = match.kind === "none" ? undefined : match.entry;
-  const listboxId = `${id}-suggestions`;
-  const optionId = `${listboxId}-0`;
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (Array.from(query).length < 2) return;
 
-  function acceptCandidate(entry: MovieIndexEntry) {
-    setTitle(entry.t);
+    const controller = new AbortController();
+    let current = true;
+
+    const timeout = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const response = await fetch(`/api/tmdb/search?q=${encodeURIComponent(query)}`, {
+            method: "GET",
+            headers: { Accept: "application/json" },
+            signal: controller.signal,
+          });
+          let payload: unknown;
+          try {
+            payload = await response.json() as unknown;
+          } catch {
+            throw new SearchResponseError(null, response.status);
+          }
+          if (!response.ok) throw new SearchResponseError(tmdbErrorCode(payload), response.status);
+          const movies = normalizeTmdbSearchResponse(payload);
+          if (current && !controller.signal.aborted) {
+            setRemoteState({ query, revision: searchRevision, movies, status: movies.length ? "ready" : "empty" });
+          }
+        } catch (error) {
+          if (!current || controller.signal.aborted) return;
+          setRemoteState({ query, revision: searchRevision, movies: [], status: statusFromError(error) });
+        }
+      })();
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      current = false;
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [searchQuery, searchRevision]);
+
+  const match = useMemo(() => matchMovieTitle(title, index), [title, index]);
+  const candidate = !selectedMovie && match.kind !== "none" ? match.entry : undefined;
+  const options = useMemo<SearchOption[]>(() => {
+    const local = candidate && match.kind !== "none"
+      ? [{ kind: "curated" as const, entry: candidate, title: candidate.t, year: candidate.y }]
+      : [];
+    const remote = (remoteMovies ?? []).map((movie) => ({
+      kind: "tmdb" as const,
+      movie,
+      title: movie.title,
+      ...(movie.year !== undefined ? { year: movie.year } : {}),
+    }));
+    return [...local, ...remote].slice(0, 8);
+  }, [candidate, match, remoteMovies]);
+
+  const listboxId = `${id}-suggestions`;
+  const optionId = (option: SearchOption) => option.kind === "tmdb"
+    ? `${listboxId}-tmdb-${option.movie.tmdbId}`
+    : `${listboxId}-curated-${option.entry.id}`;
+  const listOpen = open && options.length > 0;
+
+  function acceptOption(option: SearchOption) {
+    if (option.kind === "tmdb") {
+      selectTmdbMovie({
+        tmdbId: option.movie.tmdbId,
+        title: option.movie.title,
+        ...(option.movie.year !== undefined ? { year: option.movie.year } : {}),
+        ...(option.movie.posterPath ? { posterPath: option.movie.posterPath } : {}),
+        ...(option.movie.genre ? { genre: option.movie.genre } : {}),
+      });
+    }
+    else setTitle(option.entry.t);
+    setSearchQuery("");
     setOpen(false);
     setActiveOption(-1);
   }
+
+  function useTypedTitle() {
+    clearSelectedMovie();
+    setSearchQuery("");
+    setOpen(false);
+    setActiveOption(-1);
+  }
+
+  const hint = searchQuery.trim().length < 2 && title.trim() && !indexReady
+    ? "Loading curated movie titles…"
+    : statusMessage(status);
 
   return (
     <div className="hero-search">
@@ -52,32 +197,37 @@ export function HeroSearch() {
           id={`${id}-input`}
           role="combobox"
           aria-autocomplete="list"
-          aria-expanded={open && Boolean(candidate)}
+          aria-expanded={listOpen}
           aria-controls={listboxId}
-          aria-activedescendant={open && activeOption === 0 && candidate ? optionId : undefined}
+          aria-activedescendant={listOpen && activeOption >= 0 ? optionId(options[activeOption]!) : undefined}
           autoComplete="off"
           value={title}
           placeholder="A movie you love or hate"
           onChange={(event) => {
-            setTitle(event.currentTarget.value);
+            const value = event.currentTarget.value;
+            setTitle(value);
+            setSearchQuery(value);
+            setSearchRevision((revision) => revision + 1);
             setOpen(true);
             setActiveOption(-1);
           }}
           onFocus={() => {
-            if (candidate) setOpen(true);
+            if (title.trim()) setOpen(true);
           }}
           onBlur={() => setOpen(false)}
           onKeyDown={(event) => {
-            if (event.key === "ArrowDown" && candidate) {
+            if (event.key === "ArrowDown" && options.length > 0) {
               event.preventDefault();
               setOpen(true);
-              setActiveOption(0);
-            } else if (event.key === "ArrowUp" && open) {
+              setActiveOption((current) => current >= options.length - 1 ? 0 : current + 1);
+            } else if (event.key === "ArrowUp" && options.length > 0) {
               event.preventDefault();
-              setActiveOption(-1);
-            } else if (event.key === "Enter" && open && activeOption === 0 && candidate) {
+              setOpen(true);
+              setActiveOption((current) => current <= 0 ? options.length - 1 : current - 1);
+            } else if (event.key === "Enter" && listOpen && activeOption >= 0) {
               event.preventDefault();
-              acceptCandidate(candidate);
+              const option = options[activeOption];
+              if (option) acceptOption(option);
             } else if (event.key === "Escape") {
               setOpen(false);
               setActiveOption(-1);
@@ -86,30 +236,42 @@ export function HeroSearch() {
         />
         <span className="hero-search__icon" aria-hidden="true">⌕</span>
       </div>
-      {open && candidate ? (
-        <ul id={listboxId} className="hero-search__suggestions" role="listbox" aria-label="Movie suggestions">
-          <li
-            id={optionId}
-            role="option"
-            aria-selected={activeOption === 0}
-            className="hero-search__option"
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => acceptCandidate(candidate)}
-          >
-            <span>{match.kind === "suggestion" ? `Did you mean ${candidate.t}?` : candidate.t}</span>
-            <span className="hero-search__year">{candidate.y}</span>
-          </li>
-        </ul>
+
+      <ul id={listboxId} className="hero-search__suggestions" role="listbox" aria-label="Movie suggestions" hidden={!listOpen}>
+          {listOpen ? options.map((option, optionIndex) => {
+            const key = option.kind === "tmdb" ? `tmdb-${option.movie.tmdbId}` : `curated-${option.entry.id}`;
+            return (
+              <li
+                key={key}
+                id={optionId(option)}
+                role="option"
+                aria-selected={activeOption === optionIndex}
+                className="hero-search__option"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => acceptOption(option)}
+              >
+                <PosterThumbnail path={option.kind === "tmdb" ? option.movie.posterPath : undefined} />
+                <span className="hero-search__option-copy">
+                  <span className="hero-search__option-title">{option.title}</span>
+                  <span className="hero-search__option-source">{option.kind === "curated" ? "Curated review" : "Movie"}</span>
+                </span>
+                {option.year !== undefined ? <span className="hero-search__year">{option.year}</span> : <span className="hero-search__year">Year unknown</span>}
+              </li>
+            );
+          }) : null}
+      </ul>
+
+      <p className="studio-hint" aria-live="polite">{hint}</p>
+      {selectedMovie ? (
+        <p className="hero-search__selected" aria-live="polite">
+          Selected movie: {selectedMovie.title}{selectedMovie.year !== undefined ? ` (${selectedMovie.year})` : ""}.
+        </p>
       ) : null}
-      <p className="studio-hint" aria-live="polite">
-        {candidate && match.kind === "exact"
-          ? "Curated title found."
-          : candidate && match.kind === "suggestion"
-            ? "Suggestion only — choose it to use the curated title."
-            : title.trim() && indexReady
-              ? "We haven't seen that one. Pick a genre for a sharper roast."
-              : "Searches the local movie index as you type."}
-      </p>
+      {title.trim() ? (
+        <button className="hero-search__typed-title" type="button" onMouseDown={(event) => event.preventDefault()} onClick={useTypedTitle}>
+          Use typed title
+        </button>
+      ) : null}
     </div>
   );
 }

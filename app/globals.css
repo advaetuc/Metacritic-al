@@ -402,11 +402,10 @@ body {
 
 .hero-search__option {
   display: flex;
-  min-height: 44px;
+  min-height: 60px;
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 8px 11px;
+  gap: 10px;
+  padding: 7px 9px;
   border-radius: 9px;
   background: transparent;
   color: var(--color-ink-50);
@@ -420,9 +419,74 @@ body {
 }
 
 .hero-search__year {
+  flex: 0 0 auto;
   color: var(--color-ink-500);
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.hero-search__poster,
+.hero-search__poster-placeholder {
+  width: 36px;
+  height: 48px;
+  flex: 0 0 36px;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 5px;
+  background: linear-gradient(145deg, rgb(43 255 136 / 18%), rgb(117 91 255 / 15%));
+  object-fit: cover;
+}
+
+.hero-search__poster-placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--color-ink-500);
+}
+
+.hero-search__option-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: 2px;
+}
+
+.hero-search__option-title {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hero-search__option-source {
+  color: var(--color-ink-500);
+  font-size: 0.72rem;
+}
+
+.hero-search__selected {
+  margin: 6px 0 0;
+  color: var(--color-ink-300);
+  font-size: 0.78rem;
+}
+
+.hero-search__typed-title {
+  margin-top: 5px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-reel-green);
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.hero-search__typed-title:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid var(--color-reel-green);
+  outline-offset: 3px;
 }
 
 .hero-search .studio-hint {
