@@ -8,6 +8,7 @@ import { loadMovieIndex } from "@/lib/data/load-movie-index";
 import { useStudioStore } from "@/lib/state/studio-store";
 import {
   normalizeTmdbSearchResponse,
+  normalizeTmdbMovieDetails,
   tmdbErrorCode,
   tmdbPosterUrl,
   type TmdbSuggestion,
@@ -67,6 +68,7 @@ export function HeroSearch() {
   const id = useId();
   const title = useStudioStore((state) => state.draft.title);
   const selectedMovie = useStudioStore((state) => state.draft.selectedMovie);
+  const selectedMovieId = selectedMovie?.tmdbId;
   const setTitle = useStudioStore((state) => state.setTitle);
   const selectTmdbMovie = useStudioStore((state) => state.selectTmdbMovie);
   const clearSelectedMovie = useStudioStore((state) => state.clearSelectedMovie);
@@ -141,6 +143,30 @@ export function HeroSearch() {
     };
   }, [searchQuery, searchRevision]);
 
+  useEffect(() => {
+    if (selectedMovieId === undefined) return;
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const response = await fetch(`/api/tmdb/movie/${selectedMovieId}`, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          signal: controller.signal,
+        });
+        if (!response.ok) return;
+        const normalized = normalizeTmdbMovieDetails(await response.json() as unknown, selectedMovieId);
+        if (!normalized || controller.signal.aborted) return;
+        const current = useStudioStore.getState().draft.selectedMovie;
+        if (current?.tmdbId === normalized.tmdbId) {
+          useStudioStore.getState().selectTmdbMovie({ ...current, ...normalized, title: current.title });
+        }
+      } catch {
+        // Details enrich the selected result when available; typed-title and summary metadata remain usable.
+      }
+    })();
+    return () => controller.abort();
+  }, [selectedMovieId]);
+
   const match = useMemo(() => matchMovieTitle(title, index), [title, index]);
   const candidate = !selectedMovie && match.kind !== "none" ? match.entry : undefined;
   const options = useMemo<SearchOption[]>(() => {
@@ -167,7 +193,13 @@ export function HeroSearch() {
       selectTmdbMovie({
         tmdbId: option.movie.tmdbId,
         title: option.movie.title,
+        ...(option.movie.genres ? { genres: option.movie.genres } : {}),
+        ...(option.movie.overviewTokens ? { overviewTokens: option.movie.overviewTokens } : {}),
+        ...(option.movie.taglineTokens ? { taglineTokens: option.movie.taglineTokens } : {}),
         ...(option.movie.year !== undefined ? { year: option.movie.year } : {}),
+        ...(option.movie.runtime !== undefined ? { runtime: option.movie.runtime } : {}),
+        ...(option.movie.voteAverage !== undefined ? { voteAverage: option.movie.voteAverage } : {}),
+        ...(option.movie.voteCount !== undefined ? { voteCount: option.movie.voteCount } : {}),
         ...(option.movie.posterPath ? { posterPath: option.movie.posterPath } : {}),
         ...(option.movie.genre ? { genre: option.movie.genre } : {}),
       });

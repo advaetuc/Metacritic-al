@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { buildReviewPermalink, generateReview } from "@/lib/engine";
-import type { GenreId, Heat, ReviewModel, Sentiment, VibeId } from "@/lib/engine/types";
+import type { GenreId, Heat, ReviewModelCompatible, Sentiment, VibeId } from "@/lib/engine/types";
 import { loadCuratedMoviePack, loadMoviePackById, loadVibePack } from "@/lib/data/load-review-packs";
 import { BattleCard } from "./battle-card";
 
@@ -48,7 +48,7 @@ export function BattleExperience() {
   const searchParams = useSearchParams();
   const query = searchParams.toString();
   const parsed = useMemo(() => parseBattleParams(new URLSearchParams(query)), [query]);
-  const [result, setResult] = useState<{ query: string; left: ReviewModel; right: ReviewModel; leftHref: string; rightHref: string } | null>(null);
+  const [result, setResult] = useState<{ query: string; left: ReviewModelCompatible; right: ReviewModelCompatible; leftHref: string; rightHref: string } | null>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {

@@ -1,10 +1,10 @@
 import { forwardRef, useId } from "react";
 import { normalizeTitle, xmur3 } from "@/lib/engine";
-import type { ReviewModel } from "@/lib/engine/types";
+import type { ReviewModelCompatible } from "@/lib/engine/types";
 
 const PALETTES = [["#0d573f", "#40e88b"], ["#21124c", "#9275ff"], ["#72321d", "#ffb451"], ["#133746", "#52bfcc"], ["#511d44", "#f16ea8"], ["#243b26", "#cadf79"]] as const;
 
-export const ExportCard = forwardRef<HTMLElement, { model: ReviewModel }>(function ExportCard({ model }, ref) {
+export const ExportCard = forwardRef<HTMLElement, { model: ReviewModelCompatible }>(function ExportCard({ model }, ref) {
   const id = useId().replace(/:/gu, "");
   const hash = xmur3(normalizeTitle(model.movie.title))();
   const [top, bottom] = PALETTES[hash % PALETTES.length]!;

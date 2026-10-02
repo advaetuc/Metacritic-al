@@ -2,7 +2,8 @@ import { chooseTags, composeReviewBody, createUsername, truncateText } from "./c
 import { displayTitle, normalizeRerollCounter, normalizeTitle } from "./normalize";
 import { calculateRating } from "./rating";
 import { createReviewRandom } from "./prng";
-import type { GenerateReviewInput, ReviewModel, VibePack } from "./types";
+import { normalizeMovieMetadata } from "./metadata";
+import type { GenerateReviewInput, ReviewModelV2, VibePack } from "./types";
 
 const WATCHED_LABELS = [
   "Watched 3h ago",
@@ -18,16 +19,18 @@ function assertInput(input: GenerateReviewInput): void {
   normalizeRerollCounter(input.k);
 }
 
-export function generateReview(input: GenerateReviewInput, vibe: VibePack): ReviewModel {
+export function generateReview(input: GenerateReviewInput, vibe: VibePack): ReviewModelV2 {
   assertInput(input);
   if (input.vibe !== vibe.id) {
     throw new RangeError(`Input vibe "${input.vibe}" does not match vibe pack "${vibe.id}".`);
   }
   const random = createReviewRandom(input);
+  const metadata = normalizeMovieMetadata(input.metadata);
+  const generationInput = { ...input, ...(metadata ? { metadata } : { metadata: undefined }) };
   const title = displayTitle(input.moviePack?.title ?? input.title);
-  const genre = input.genre ?? input.moviePack?.genres[0];
+  const genre = input.genre ?? input.moviePack?.genres[0] ?? metadata?.genres?.[0];
   const body = truncateText(
-    composeReviewBody({ input, vibe, random }),
+    composeReviewBody({ input: generationInput, vibe, random }),
     800,
   );
   const rating = calculateRating({
@@ -47,11 +50,21 @@ export function generateReview(input: GenerateReviewInput, vibe: VibePack): Revi
   const tweet = truncateText(`${rating}★ “${title}” — ${body}`, 240);
 
   return {
-    v: 1,
+    v: 2,
+    engineVersion: 1,
     movie: {
       ...(input.moviePack ? { id: input.moviePack.id, year: input.moviePack.year } : {}),
       title,
+      ...(input.moviePack?.year === undefined && metadata?.year !== undefined ? { year: metadata.year } : {}),
       ...(genre ? { genre } : {}),
+      ...(metadata?.tmdbId !== undefined ? { tmdbId: metadata.tmdbId } : {}),
+      ...(metadata?.genres ? { genres: metadata.genres } : {}),
+      ...(metadata?.overviewTokens ? { overviewTokens: metadata.overviewTokens } : {}),
+      ...(metadata?.taglineTokens ? { taglineTokens: metadata.taglineTokens } : {}),
+      ...(metadata?.runtime !== undefined ? { runtime: metadata.runtime } : {}),
+      ...(metadata?.voteAverage !== undefined ? { voteAverage: metadata.voteAverage } : {}),
+      ...(metadata?.voteCount !== undefined ? { voteCount: metadata.voteCount } : {}),
+      ...(metadata?.posterPath ? { posterPath: metadata.posterPath } : {}),
     },
     source: input.moviePack ? "curated" : "procedural",
     vibe: vibe.id,
@@ -76,6 +89,7 @@ export * from "./daily";
 export * from "./battle";
 export * from "./matcher";
 export * from "./normalize";
+export * from "./metadata";
 export * from "./opposites";
 export * from "./permalink";
 export * from "./prng";

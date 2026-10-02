@@ -1,10 +1,9 @@
-import type { GenreId } from "@/lib/engine/types";
+import { normalizeMovieMetadata } from "@/lib/engine/metadata";
+import type { GenreId, MovieMetadataContext } from "@/lib/engine/types";
 
-export interface SelectedTmdbMovie {
+export interface SelectedTmdbMovie extends MovieMetadataContext {
   tmdbId: number;
   title: string;
-  year?: number;
-  posterPath?: string;
   genre?: GenreId;
 }
 
@@ -69,6 +68,18 @@ export function mapTmdbGenresToV1Genre(ids: readonly number[]): GenreId | undefi
   return undefined;
 }
 
+function mapTmdbGenres(ids: readonly number[]): GenreId[] {
+  return [...new Set(ids.flatMap((id) => TMDB_GENRE_TO_V1[id] ? [TMDB_GENRE_TO_V1[id]!] : []))];
+}
+
+function validVoteAverage(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 10 ? value : undefined;
+}
+
+function validVoteCount(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 2_147_483_647 ? value : undefined;
+}
+
 /** Validate the same-origin proxy payload again before it enters client state. */
 export function normalizeTmdbSearchResponse(value: unknown): TmdbSuggestion[] {
   if (!isRecord(value) || !Array.isArray(value.results)) {
@@ -86,15 +97,62 @@ export function normalizeTmdbSearchResponse(value: unknown): TmdbSuggestion[] {
     const ids = genreIds(candidate.genreIds);
     const year = dateYear(candidate.releaseDate);
     const poster = posterPath(candidate.posterPath);
+    const genre = mapTmdbGenresToV1Genre(ids);
+    const metadata = normalizeMovieMetadata({
+      tmdbId,
+      title,
+      year,
+      genres: mapTmdbGenres(ids),
+      overview: candidate.overview,
+      voteAverage: validVoteAverage(candidate.voteAverage),
+      voteCount: validVoteCount(candidate.voteCount),
+      posterPath: poster,
+    });
     return [{
       tmdbId,
       title,
       genreIds: ids,
+      ...(metadata ? metadata : {}),
       ...(year !== undefined ? { year } : {}),
       ...(poster ? { posterPath: poster } : {}),
-      ...(mapTmdbGenresToV1Genre(ids) ? { genre: mapTmdbGenresToV1Genre(ids) } : {}),
+      ...(genre ? { genre } : {}),
     }];
   });
+}
+
+/** Normalize the bounded same-origin movie-details response without retaining raw prose. */
+export function normalizeTmdbMovieDetails(value: unknown, expectedId: number): SelectedTmdbMovie | null {
+  if (!isRecord(value) || value.id !== expectedId || !Number.isSafeInteger(expectedId) || expectedId <= 0) return null;
+  const title = cleanTitle(value.title);
+  if (!title) return null;
+  const genres = Array.isArray(value.genres)
+    ? value.genres.slice(0, 20).flatMap((item) => {
+        if (!isRecord(item) || typeof item.id !== "number" || !Number.isSafeInteger(item.id)) return [];
+        const mapped = TMDB_GENRE_TO_V1[item.id];
+        return mapped ? [mapped] : [];
+      })
+    : [];
+  const ids = genreIds(value.genreIds);
+  const mappedGenres = [...new Set([...genres, ...mapTmdbGenres(ids)])];
+  const metadata = normalizeMovieMetadata({
+    tmdbId: expectedId,
+    title,
+    year: dateYear(value.releaseDate),
+    genres: mappedGenres,
+    overview: value.overview,
+    tagline: value.tagline,
+    runtime: value.runtime,
+    voteAverage: validVoteAverage(value.voteAverage),
+    voteCount: validVoteCount(value.voteCount),
+    posterPath: posterPath(value.posterPath),
+  });
+  if (!metadata) return null;
+  return {
+    tmdbId: expectedId,
+    title,
+    ...metadata,
+    ...(mappedGenres[0] ? { genre: mappedGenres[0] } : {}),
+  };
 }
 
 export function tmdbPosterUrl(path: string | undefined): string | undefined {

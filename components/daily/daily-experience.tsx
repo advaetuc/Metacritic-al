@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { generateReview, selectDailyRoast, buildReviewPermalink } from "@/lib/engine";
-import type { ReviewModel } from "@/lib/engine/types";
+import type { ReviewModelCompatible } from "@/lib/engine/types";
 import { loadMovieIndex } from "@/lib/data/load-movie-index";
 import { loadMoviePackById, loadVibePack } from "@/lib/data/load-review-packs";
 import { GlassReviewCard } from "@/components/studio/glass-review-card";
@@ -12,7 +12,7 @@ import { useRetentionStore } from "@/lib/state/retention-store";
 
 interface DailyResult {
   dayKey: string;
-  model: ReviewModel;
+  model: ReviewModelCompatible;
   permalink: string;
 }
 

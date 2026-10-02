@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { generateReview } from "@/lib/engine";
-import type { ReviewModel } from "@/lib/engine/types";
+import type { ReviewModelCompatible } from "@/lib/engine/types";
 import { loadCuratedMoviePack, loadVibePack } from "@/lib/data/load-review-packs";
 import { useStudioStore } from "@/lib/state/studio-store";
 import type { GenreId, Sentiment } from "@/lib/engine/types";
@@ -49,7 +49,7 @@ export function RoastStudio() {
   const phase = useStudioStore((state) => state.phase);
   const totalRoasts = useRetentionStore((state) => state.totalRoasts);
   const setPhase = useStudioStore((state) => state.setPhase);
- const [review, setReview] = useState<ReviewModel | null>(null);
+ const [review, setReview] = useState<ReviewModelCompatible | null>(null);
   const [reviewHref, setReviewHref] = useState("");
   const [screeningComplete, setScreeningComplete] = useState(false);
   const [reroll, setReroll] = useState(0);
@@ -84,6 +84,7 @@ export function RoastStudio() {
         sentiment: draft.sentiment,
         k: currentReroll,
         ...(draft.genre ? { genre: draft.genre } : {}),
+        ...(draft.selectedMovie ? { metadata: draft.selectedMovie } : {}),
         ...(moviePack ? { moviePack } : {}),
       };
       const generated = generateReview(input, vibePack);

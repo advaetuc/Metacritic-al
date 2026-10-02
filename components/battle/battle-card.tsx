@@ -1,12 +1,12 @@
 "use client";
 
-import type { ReviewModel } from "@/lib/engine/types";
+import type { ReviewModelCompatible } from "@/lib/engine/types";
 import { GlassReviewCard } from "@/components/studio/glass-review-card";
 import { ReviewActions } from "@/components/share/review-actions";
 
 export function BattleCard({ left, right, leftHref, rightHref }: {
-  left: ReviewModel;
-  right: ReviewModel;
+  left: ReviewModelCompatible;
+  right: ReviewModelCompatible;
   leftHref: string;
   rightHref: string;
 }) {

@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { generateReview, parseReviewPermalink } from "@/lib/engine";
-import type { ReviewModel } from "@/lib/engine/types";
+import type { ReviewModelCompatible } from "@/lib/engine/types";
 import { loadMoviePackById, loadVibePack } from "@/lib/data/load-review-packs";
 import { GlassReviewCard } from "@/components/studio/glass-review-card";
 import { ReviewActions } from "@/components/share/review-actions";
@@ -13,7 +13,7 @@ export function PermalinkExperience() {
   const searchParams = useSearchParams();
   const query = searchParams.toString();
   const parsed = useMemo(() => parseReviewPermalink(new URLSearchParams(query)), [query]);
-  const [loaded, setLoaded] = useState<{ query: string; model?: ReviewModel; href?: string; error?: string } | null>(null);
+  const [loaded, setLoaded] = useState<{ query: string; model?: ReviewModelCompatible; href?: string; error?: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;

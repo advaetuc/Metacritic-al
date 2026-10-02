@@ -165,6 +165,57 @@ export interface ReviewModel {
   k: string;
 }
 
+/** Sanitized, optional context. Raw synopsis copy is never retained. */
+export interface MovieMetadataContext {
+  tmdbId?: number;
+  title?: string;
+  year?: number;
+  genres?: GenreId[];
+  overviewTokens?: string[];
+  taglineTokens?: string[];
+  runtime?: number;
+  voteAverage?: number;
+  voteCount?: number;
+  posterPath?: string;
+}
+
+/** V2 wraps the V1 result additively; all generated review fields retain V1 semantics. */
+export interface ReviewModelV2 extends Omit<ReviewModel, "v" | "movie"> {
+  v: 2;
+  engineVersion: 1;
+  movie: ReviewModel["movie"] & MovieMetadataContext;
+}
+
+export type ReviewModelCompatible = ReviewModel | ReviewModelV2;
+
+/** Drop the V2 envelope and optional metadata for consumers that require the V1 shape. */
+export function toReviewModelV1(model: ReviewModelCompatible): ReviewModel {
+  return {
+    v: 1,
+    movie: {
+      ...(model.movie.id ? { id: model.movie.id } : {}),
+      title: model.movie.title,
+      ...(model.movie.year !== undefined ? { year: model.movie.year } : {}),
+      ...(model.movie.genre ? { genre: model.movie.genre } : {}),
+    },
+    source: model.source,
+    vibe: model.vibe,
+    heat: model.heat,
+    sentiment: model.sentiment,
+    rating: model.rating,
+    username: model.username,
+    avatarSeed: model.avatarSeed,
+    watchedLabel: model.watchedLabel,
+    rewatch: model.rewatch,
+    body: model.body,
+    tweet: model.tweet,
+    tags: [...model.tags],
+    likes: model.likes,
+    comments: model.comments,
+    k: model.k,
+  };
+}
+
 export interface GenerateReviewInput {
   title: string;
   vibe: VibeId;
@@ -174,6 +225,8 @@ export interface GenerateReviewInput {
   k?: number;
   genre?: GenreId;
   moviePack?: MoviePack;
+  /** Already normalized metadata from an optional movie lookup. */
+  metadata?: MovieMetadataContext;
 }
 
 export type RandomSource = () => number;

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import type { ReviewModel } from "@/lib/engine/types";
+import type { ReviewModelCompatible } from "@/lib/engine/types";
 import { ExportCard } from "@/components/export/export-card";
 import { buildBattlePermalink, buildReviewPermalink, generateReview, oppositeVibe } from "@/lib/engine";
 import { loadMoviePackById, loadVibePack } from "@/lib/data/load-review-packs";
@@ -14,7 +14,7 @@ function safeFileName(title: string): string {
   return title.normalize("NFKC").toLowerCase().replace(/[^a-z0-9]+/gu, "-").replace(/^-|-$/gu, "").slice(0, 64) || "review";
 }
 
-export function ReviewActions({ model, permalink }: { model: ReviewModel; permalink: string }) {
+export function ReviewActions({ model, permalink }: { model: ReviewModelCompatible; permalink: string }) {
   const router = useRouter();
   const [intent, setIntent] = useState<ExportIntent | null>(null);
   const [countering, setCountering] = useState(false);

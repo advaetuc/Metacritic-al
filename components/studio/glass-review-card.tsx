@@ -5,7 +5,7 @@ import { useId, useMemo } from "react";
 import type { CSSProperties, PointerEvent } from "react";
 import { normalizeTitle } from "@/lib/engine/normalize";
 import { xmur3 } from "@/lib/engine/prng";
-import type { ReviewModel } from "@/lib/engine/types";
+import type { ReviewModelCompatible } from "@/lib/engine/types";
 
 const FLOAT_SPRING = { stiffness: 90, damping: 18 };
 const POSTER_PALETTES = [
@@ -117,14 +117,14 @@ function RoastBody({ text }: { text: string }) {
   );
 }
 
-export function GlassReviewCard({ model }: { model: ReviewModel }) {
+export function GlassReviewCard({ model }: { model: ReviewModelCompatible }) {
   const reducedMotion = useReducedMotion() ?? false;
   const rawRotateX = useMotionValue(0);
   const rawRotateY = useMotionValue(0);
   const rotateX = useSpring(rawRotateX, FLOAT_SPRING);
   const rotateY = useSpring(rawRotateY, FLOAT_SPRING);
   const userInitial = Array.from(model.username)[0]?.toUpperCase() ?? "C";
-  const vibeAccents: Partial<Record<ReviewModel["vibe"], string>> = {
+  const vibeAccents: Partial<Record<ReviewModelCompatible["vibe"], string>> = {
     "film-student": "#2BFF88",
     shitposter: "#FF7A2F",
     mid: "#FFC857",

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   calculateRating,
   createReviewRandom,
@@ -10,6 +10,8 @@ import {
   xmur3,
 } from "./index";
 import type { GenerateReviewInput, VibePack } from "./types";
+import { toReviewModelV1 } from "./types";
+import type { VibeId } from "./types";
 
 const vibe: VibePack = {
   id: "film-student",
@@ -99,5 +101,84 @@ describe("deterministic review engine", () => {
     expect(first.k).toBe("0");
     expect(rerolled.k).toBe("1");
     expect(generateReview(makeInput(0), vibe)).toEqual(first);
+  });
+
+  it("emits the additive V2 envelope and keeps a V1 adapter", () => {
+    const review = generateReview(makeInput(0), vibe);
+    expect(review).toMatchObject({ v: 2, engineVersion: 1, movie: { title: "The Green Knight" } });
+    expect(toReviewModelV1(review)).toMatchObject({ v: 1, movie: { title: "The Green Knight" } });
+    expect(toReviewModelV1(review)).not.toHaveProperty("engineVersion");
+    expect(toReviewModelV1(review).movie).not.toHaveProperty("tmdbId");
+  });
+
+  it("generates valid models across all existing vibe, heat, and sentiment combinations", () => {
+    const vibeIds: VibeId[] = [
+      "film-student", "shitposter", "mid", "dad", "stan", "festival-snob",
+      "linkedin", "conspiracy", "sports", "victorian", "nature",
+    ];
+    for (const vibeId of vibeIds) {
+      const pack = { ...vibe, id: vibeId };
+      for (const heat of [0, 1, 2, 3] as const) {
+        for (const sentiment of ["love", "hate"] as const) {
+          const review = generateReview({ ...makeInput(7), vibe: vibeId, heat, sentiment }, pack);
+          expect(review.v).toBe(2);
+          expect(review.engineVersion).toBe(1);
+          expect(review.body.trim().length).toBeGreaterThan(0);
+          expect(review.rating * 2).toBeCloseTo(Math.round(review.rating * 2), 10);
+        }
+      }
+    }
+  });
+
+  it("keeps V1 outputs identical when non-seed metadata changes", () => {
+    const base = makeInput(11);
+    const first = generateReview({ ...base, metadata: {
+      tmdbId: 603, title: base.title, year: 1999, genres: ["scifi"],
+      overviewTokens: ["hacker", "reality"], taglineTokens: ["simulated"], runtime: 136,
+      voteAverage: 8.7, voteCount: 25_000, posterPath: "/matrix.jpg",
+    } }, vibe);
+    const second = generateReview({ ...base, metadata: {
+      tmdbId: 603, title: base.title, year: 1999, genres: ["scifi"],
+      overviewTokens: ["code", "simulation"], taglineTokens: ["systems"], runtime: 140,
+      voteAverage: 2.1, voteCount: 9, posterPath: "/other.png",
+    } }, vibe);
+    for (const field of ["body", "rating", "username", "avatarSeed", "watchedLabel", "rewatch", "likes", "comments", "tags", "tweet", "k"] as const) {
+      expect(second[field]).toEqual(first[field]);
+    }
+  });
+
+  it("uses only known mapped genre IDs and falls back to the typed title without metadata", () => {
+    const input = { ...makeInput(0), genre: undefined };
+    const fallback = generateReview(input, vibe);
+    expect(fallback.movie.title).toBe("The Green Knight");
+    const unknown = generateReview({ ...input, metadata: { genres: ["not-a-genre"] as never } }, vibe);
+    expect(unknown.movie.genre).toBeUndefined();
+    const known = generateReview({ ...input, metadata: { genres: ["thriller"] } }, vibe);
+    expect(known.movie.genre).toBe("thriller");
+  });
+
+  it("does not perform network requests during engine generation", () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    try {
+      generateReview(makeInput(0), vibe);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it("keeps HTML-like entered titles as plain model text and excludes raw metadata prose", () => {
+    const title = '<img src=x onerror="alert(1)"> Movie';
+    const review = generateReview({
+      ...makeInput(3),
+      title,
+      metadata: {
+        title,
+        overviewTokens: ["ordinary", "topic"],
+      },
+    }, vibe);
+    expect(review.movie.title).toBe(title);
+    expect(review.body).toContain(title);
+    expect(review.body).not.toContain("ordinary topic");
   });
 });

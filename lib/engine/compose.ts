@@ -128,7 +128,9 @@ export function composeReviewBody(options: {
   const movie = input.moviePack;
   const title = displayTitle(movie?.title ?? input.title);
   const features = extractTitleFeatures(title);
-  const genres = input.genre ? [input.genre] : (movie?.genres ?? []).slice(0, 2);
+  const genres = input.genre
+    ? [input.genre]
+    : (input.metadata?.genres ?? movie?.genres ?? []).slice(0, 2);
   const context = { input, vibe, movie, random, features, genres };
   const matchingGold = movie?.gold.filter(
     (line) =>
