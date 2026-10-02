@@ -3,6 +3,7 @@ import { displayTitle, normalizeRerollCounter, normalizeTitle } from "./normaliz
 import { calculateRating } from "./rating";
 import { createReviewRandom } from "./prng";
 import { normalizeMovieMetadata } from "./metadata";
+import { containsBlockedSafetyContent, isSafeGeneratedCopy, SAFE_COPY_FALLBACK } from "./safety";
 import type { GenerateReviewInput, ReviewModelV2, VibePack } from "./types";
 
 const WATCHED_LABELS = [
@@ -15,6 +16,7 @@ const WATCHED_LABELS = [
 
 function assertInput(input: GenerateReviewInput): void {
   if (!normalizeTitle(input.title)) throw new RangeError("Movie title must not be empty.");
+  if (containsBlockedSafetyContent(input.title)) throw new RangeError("Movie title is blocked by the content safety policy.");
   if (![0, 1, 2, 3].includes(input.heat)) throw new RangeError("Heat must be between 0 and 3.");
   normalizeRerollCounter(input.k);
 }
@@ -29,10 +31,11 @@ export function generateReview(input: GenerateReviewInput, vibe: VibePack): Revi
   const generationInput = { ...input, ...(metadata ? { metadata } : { metadata: undefined }) };
   const title = displayTitle(input.moviePack?.title ?? input.title);
   const genre = input.genre ?? input.moviePack?.genres[0];
-  const body = truncateText(
+  const composedBody = truncateText(
     composeReviewBody({ input: generationInput, vibe, random }),
     800,
   );
+  const body = isSafeGeneratedCopy(composedBody) ? composedBody : SAFE_COPY_FALLBACK;
   const rating = calculateRating({
     sentiment: input.sentiment,
     heat: input.heat,
@@ -40,14 +43,16 @@ export function generateReview(input: GenerateReviewInput, vibe: VibePack): Revi
     model: vibe.ratingModel,
     consensus: input.moviePack?.consensus,
   });
-  const username = createUsername(vibe, random);
+  const usernameCandidate = createUsername(vibe, random);
+  const username = isSafeGeneratedCopy(usernameCandidate) ? usernameCandidate : "critic_notes";
   const avatarSeed = Math.floor(random() * 0x100000000) >>> 0;
   const watchedLabel = WATCHED_LABELS[Math.floor(random() * WATCHED_LABELS.length)]!;
   const rewatch = random() < 0.12;
-  const tags = chooseTags(vibe.tags, random);
+  const tags = chooseTags(vibe.tags, random).filter(isSafeGeneratedCopy);
   const likes = Math.round(Math.exp(2 + random() * 2.5) * (1 + input.heat * 0.12));
   const comments = Math.round(Math.exp(0.2 + random() * 1.8));
-  const tweet = truncateText(`${rating}★ “${title}” — ${body}`, 240);
+  const tweetCandidate = truncateText(`${rating}★ “${title}” — ${body}`, 240);
+  const tweet = isSafeGeneratedCopy(tweetCandidate) ? tweetCandidate : `A new review is ready at ${rating} stars.`;
 
   return {
     v: 2,
@@ -94,4 +99,5 @@ export * from "./opposites";
 export * from "./permalink";
 export * from "./prng";
 export * from "./rating";
+export * from "./safety";
 export * from "./types";

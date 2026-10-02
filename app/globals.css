@@ -957,6 +957,10 @@ body {
 .about-panel p, .about-panel li { color: var(--color-ink-300); font-size: 0.94rem; line-height: 1.75; }
 .about-panel .about-lede { max-width: 62ch; margin: 20px 0 0; color: var(--color-ink-50); font-family: var(--font-review); font-size: clamp(1.2rem, 3.6vw, 1.55rem); font-style: italic; }
 .about-panel ul { display: grid; gap: 10px; padding-left: 22px; }
+.tmdb-credit { display: grid; gap: 12px; width: fit-content; max-width: 100%; margin-top: 14px; padding: 16px 18px; border: 1px solid rgb(255 255 255 / 10%); border-radius: 14px; background: rgb(5 7 6 / 42%); }
+.tmdb-credit a { display: inline-flex; align-items: center; width: fit-content; }
+.tmdb-credit img { display: block; width: min(150px, 42vw); height: auto; }
+.about-panel .tmdb-disclaimer { max-width: 60ch; margin: 0; color: var(--color-ink-50); font-size: 0.86rem; line-height: 1.55; }
 .about-note, .fictional-note { color: var(--color-ink-500) !important; font-size: 0.78rem !important; }
 .about-cta { display: inline-flex; min-height: 46px; align-items: center; justify-content: center; margin-top: 22px; padding: 0 18px; border-radius: 12px; background: var(--color-reel-green); color: var(--color-on-green); font-weight: 750; text-decoration: none; }
 .not-found-panel { display: grid; width: min(100%, 560px); justify-items: center; padding: clamp(32px, 7vw, 64px); text-align: center; }

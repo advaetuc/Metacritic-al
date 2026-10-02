@@ -147,7 +147,6 @@ describe("TMDB local proxy", () => {
     expect(data).toMatchObject({
       id: 603,
       title: "The Matrix",
-      originalTitle: "The Matrix",
       genreIds: [28, 878],
       genres: [{ id: 28, name: "Action" }, { id: 878, name: "Science Fiction" }],
       runtime: 136,

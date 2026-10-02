@@ -55,6 +55,7 @@ function genreIds(value: unknown): number[] {
   if (!Array.isArray(value)) return [];
   return value.slice(0, 20).flatMap((candidate) =>
     typeof candidate === "number" && Number.isSafeInteger(candidate) && candidate > 0
+      && candidate <= 2_147_483_647
       ? [candidate]
       : [],
   );

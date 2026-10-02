@@ -1,4 +1,5 @@
 import { displayTitle } from "./normalize";
+import { containsBlockedSafetyContent } from "./safety";
 import type { GenreId, MovieMetadataContext } from "./types";
 
 const GENRES: readonly GenreId[] = [
@@ -34,7 +35,7 @@ function topicTokens(value: unknown): string[] {
   return clean
     .split(" ")
     .map((token) => token.slice(0, 40))
-    .filter((token) => token.length > 1)
+    .filter((token) => token.length > 1 && !containsBlockedSafetyContent(token))
     .slice(0, 2);
 }
 
@@ -48,7 +49,7 @@ function tokenSource(raw: Record<string, unknown>, field: "overview" | "tagline"
 function safeTitle(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
   const title = displayTitle(value.replace(CONTROL_OR_BIDI, " "));
-  return title || undefined;
+  return title && !containsBlockedSafetyContent(title) ? title : undefined;
 }
 
 /** Accept an untrusted TMDB-like object and keep only bounded, approved metadata. */

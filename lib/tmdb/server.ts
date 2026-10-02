@@ -185,6 +185,12 @@ function normalizeVote(value: unknown, max: number): number | null {
     : null;
 }
 
+function normalizeVoteCount(value: unknown): number | null {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 2_147_483_647
+    ? value
+    : null;
+}
+
 function normalizeGenreIds(value: unknown): number[] {
   if (!Array.isArray(value)) return [];
   return value.slice(0, 20).flatMap((item) => {
@@ -206,15 +212,14 @@ function normalizeSummary(value: unknown): TmdbMovieSummary | null {
     overview: sanitizeText(value.overview, 500) ?? "",
     genreIds: normalizeGenreIds(value.genre_ids),
     voteAverage: normalizeVote(value.vote_average, 10),
-    voteCount: normalizeVote(value.vote_count, 2_147_483_647),
+    voteCount: normalizeVoteCount(value.vote_count),
   };
 }
 
 function normalizeDetails(value: unknown, expectedId: number): TmdbMovieDetails | null {
   if (!isRecord(value)) return null;
   const summary = normalizeSummary({ ...value, genre_ids: value.genre_ids });
-  const originalTitle = sanitizeText(value.original_title, 120);
-  if (!summary || summary.id !== expectedId || originalTitle === null) return null;
+  if (!summary || summary.id !== expectedId) return null;
 
   const genres = Array.isArray(value.genres)
     ? value.genres.slice(0, 20).flatMap((genre) => {
@@ -231,7 +236,6 @@ function normalizeDetails(value: unknown, expectedId: number): TmdbMovieDetails 
   return {
     ...summary,
     genreIds: genres.map((genre) => genre.id),
-    originalTitle,
     tagline: sanitizeText(value.tagline, 200) ?? "",
     runtime,
     genres,

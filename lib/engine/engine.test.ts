@@ -7,6 +7,7 @@ import {
   generateReview,
   mulberry32,
   reviewSeedText,
+  isSafeGeneratedCopy,
   xmur3,
 } from "./index";
 import type { GenerateReviewInput, VibePack } from "./types";
@@ -127,6 +128,10 @@ describe("deterministic review engine", () => {
           expect(review.v).toBe(2);
           expect(review.engineVersion).toBe(1);
           expect(review.body.trim().length).toBeGreaterThan(0);
+          expect(isSafeGeneratedCopy(review.body)).toBe(true);
+          expect(isSafeGeneratedCopy(review.tweet)).toBe(true);
+          expect(isSafeGeneratedCopy(review.username)).toBe(true);
+          for (const tag of review.tags) expect(isSafeGeneratedCopy(tag)).toBe(true);
           expect(review.rating * 2).toBeCloseTo(Math.round(review.rating * 2), 10);
         }
       }
@@ -184,5 +189,22 @@ describe("deterministic review engine", () => {
     expect(review.movie.title).toBe(title);
     expect(review.body).toContain(title);
     expect(review.body).not.toContain("ordinary topic");
+  });
+
+  it("blocks unsafe title input and replaces unsafe authored output for every heat", () => {
+    expect(() => generateReview({ ...makeInput(0), title: "Porn review" }, vibe)).toThrow(/content safety policy/u);
+    const unsafePack: VibePack = {
+      ...vibe,
+      rules: {
+        ...vibe.rules,
+        body: [{ t: "I will kill you." }],
+        kicker: [],
+      },
+    };
+    for (const heat of [0, 1, 2, 3] as const) {
+      const review = generateReview({ ...makeInput(heat), heat }, unsafePack);
+      expect(review.body).toBe("The film makes a choice, and the projector has notes.");
+      expect(isSafeGeneratedCopy(review.tweet)).toBe(true);
+    }
   });
 });

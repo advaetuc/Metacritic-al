@@ -15,7 +15,6 @@ export interface TmdbSearchResponse {
 }
 
 export interface TmdbMovieDetails extends TmdbMovieSummary {
-  originalTitle: string;
   tagline: string;
   runtime: number | null;
   genres: Array<{ id: number; name: string }>;

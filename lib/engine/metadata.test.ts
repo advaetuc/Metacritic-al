@@ -76,4 +76,14 @@ describe("optional movie metadata normalization", () => {
     expect(normalized?.overviewTokens).not.toContain("alert");
     expect(normalized?.overviewTokens).not.toContain("iframe");
   });
+
+  it("drops blocklisted words from synopsis and tagline hooks", () => {
+    const normalized = normalizeMovieMetadata({
+      tmdbId: 603,
+      overview: "The heroine escapes a porn studio and exposes a cover story.",
+    });
+    expect(normalized?.overviewTokens).not.toContain("porn");
+    const taglineOnly = normalizeMovieMetadata({ tagline: "A violent season." });
+    expect(taglineOnly?.taglineTokens).not.toContain("violent");
+  });
 });
